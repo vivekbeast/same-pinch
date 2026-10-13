@@ -44,6 +44,19 @@ Open app ─► Today ─► Play pack (10 rounds, ~2 min)
 | Partner | A recorded answer set from another real player for the same prompt, chosen server-side |
 | Reveal | Both cards flip together; matched words glow and connect with a line |
 
+### Pinch the Picture (photo rounds — the signature mechanic, D39)
+
+1. **Notice** — pinch (tap) the first thing your eye goes to on the photo. Tap again to move it.
+2. **Name it** — optional: up to 3 words; **Smart Chips** finish the word you're typing in *your* language.
+3. **Lock in** — pinch + words go to the server together; nothing of your partner's reaches the phone first.
+4. **Discover** — their pinch pops in: a shared glow if it's within 170/1000 of yours (**same spot**), a dashed
+   thread if not.
+5. **Connect** — their words appear in their language; matching meaning across languages is a Bhasha Pinch.
+
+Same spot = **XP only** (`pinch.spotXp`), never ₹ — a tap can land on the same spot by chance. ₹ stays tied to
+words matched by meaning (the labelling work). Words are optional on photo rounds; a pinch alone is a
+played round. Question/sound/vibe rounds stay word rounds.
+
 ## 3. Matching
 
 Matching runs **only on the server** in `POST /api/v1/rounds` (BACKEND.md §5).
@@ -83,7 +96,7 @@ For each prompt, once a concept appears in more than **40%** of the last 50 answ
 
 ## 6. Session (pack)
 
-- A pack = 10 rounds: 8 normal, 1 hidden gold (known answer), 1 vibe round. Order shuffled.
+- A pack = **5 photo rounds** (D40): 3 Pinch the Picture, 1 hidden gold photo (known answer), 1 vibe photo. Order shuffled. About a minute — short enough to want another. Question prompts live in the Daily challenge, not packs.
 - Pack is downloaded whole (prompts + compressed assets + encrypted partner answers are **not** included — partner answers stay server-side). Offline play is handled by deferring the reveal; see ARCHITECTURE.md §Offline reveal.
 - Session complete bonus: +20 XP.
 - Max **5 paid packs per day** (daily cap protects data quality and prevents grinding). Extra play allowed for XP only.

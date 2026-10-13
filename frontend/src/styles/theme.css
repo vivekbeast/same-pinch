@@ -1,10 +1,14 @@
-/* src/styles/theme.css — THE single source of design truth (docs/DESIGN_SYSTEM.md §9) */
+/* src/styles/theme.css — THE single source of design truth (docs/UI_DIRECTION.md v3: Sticker Bomb) */
 @import "tailwindcss";
 
-/* Self-hosted fonts (latin subsets) */
-@import "@fontsource/barlow-condensed/latin-600.css";
-@import "@fontsource/barlow-condensed/latin-700.css";
-@import "@fontsource-variable/inter/wght.css";
+/* One type system for every script (D40): Anek by Ek Type — Latin, Devanagari, Kannada, Tamil, Telugu
+   drawn as one family, variable weight (100–800) and width (75–125%). Each script's file loads only when
+   its characters appear (unicode-range), so English-only players never download the Indic ones. */
+@import "@fontsource-variable/anek-latin/wdth.css";
+@import "@fontsource-variable/anek-devanagari/wdth.css";
+@import "@fontsource-variable/anek-kannada/wdth.css";
+@import "@fontsource-variable/anek-tamil/wdth.css";
+@import "@fontsource-variable/anek-telugu/wdth.css";
 
 @theme {
   /* ---------- Breakpoints (docs/RESPONSIVE.md) — mirrored in src/lib/breakpoints.ts ---------- */
@@ -14,96 +18,206 @@
   --breakpoint-xl: 80rem;
   --breakpoint-2xl: 96rem;
 
-  /* ---------- Colours: Chai & Marigold ---------- */
-  --color-canvas: #f7f4ef;
+  /* ---------- Colour: "Sticker Bomb" — stickers on a doodled page ---------- */
+  --color-canvas: #edf1fc; /* cool paper */
   --color-surface: #ffffff;
-  --color-surface-2: #f0ebe3;
-  --color-line: #e8e1d6;
+  --color-surface-2: #e4e9fb;
+  --color-line: #cfd7f2;
 
-  --color-ink: #1a1523;
-  --color-ink-2: #3d3547;
-  --color-ink-muted: #6b6173;
-  --color-ink-faint: #9c92a0;
+  --color-ink: #151340; /* deep navy ink: text, outlines */
+  --color-ink-2: #2e2c5c;
+  --color-ink-muted: #56557d;
+  --color-ink-faint: #9a9cc4; /* decorative only */
 
-  --color-brand: #5a3be7;
-  --color-brand-600: #4529c9;
-  --color-brand-400: #6e50f2;
-  --color-brand-soft: #eee9ff;
-  --color-brand-ink: #33219a;
+  --color-brand: #3d5afe; /* cobalt */
+  --color-brand-600: #2b43d6;
+  --color-brand-400: #7088ff;
+  --color-brand-soft: #dde3ff;
+  --color-brand-ink: #1c2a8c;
 
-  --color-night: #1b1622;
-  --color-night-2: #272030;
-  --color-night-glass: rgb(27 22 34 / 0.62);
+  --color-night: #151340;
+  --color-night-2: #24225c;
+  --color-night-glass: rgb(21 19 64 / 0.62);
 
-  --color-pinch: #ff7a6b;
-  --color-pinch-soft: #ffe9e4;
-  --color-pinch-ink: #b8382a;
+  --color-lime: #c6f432; /* PLAY — the one thing to press */
+  --color-lime-600: #93c20a;
+  --color-lime-soft: #effccb;
+  --color-lime-ink: #3a4d00;
 
-  --color-marigold: #ffb020;
-  --color-marigold-soft: #fff3d6;
-  --color-marigold-ink: #9a5800;
+  --color-pinch: #ff5b3a; /* tomato: the match moment + flame */
+  --color-pinch-600: #d93d1e;
+  --color-pinch-soft: #ffe0d8;
+  --color-pinch-ink: #a8260c;
 
-  --color-success: #177245;
-  --color-success-soft: #e5f5ec;
-  --color-success-bright: #5be49b;
-  --color-danger: #c0322b;
-  --color-danger-soft: #fdebe9;
+  --color-bubble: #ff8ad8; /* bubblegum: Bhasha, stickers */
+  --color-bubble-600: #e05db8;
+  --color-bubble-soft: #ffe1f5;
+  --color-bubble-ink: #8a1667;
 
-  --color-lang-en: #1f4fbf;
-  --color-lang-hi: #e8710a;
-  --color-lang-kn: #c9a400;
-  --color-lang-ta: #b3261e;
+  --color-marigold: #ffd23f; /* coins & money */
+  --color-marigold-600: #e0ad0c;
+  --color-marigold-soft: #fff3c4;
+  --color-marigold-ink: #6e4f00;
+
+  --color-success: #0b7f57;
+  --color-success-soft: #d2f7e7;
+  --color-success-bright: #c6f432; /* matched = lime */
+  --color-danger: #c62828;
+  --color-danger-soft: #ffe1e1;
+
+  --color-sky: #3ec5ff;
+  --color-sky-soft: #dbf4ff;
+
+  /* Language tags (always with a text label) */
+  --color-lang-en: #3d5afe;
+  --color-lang-hi: #f26b1d;
+  --color-lang-kn: #a77d00;
+  --color-lang-ta: #d6336c;
   --color-lang-te: #0b8043;
-  --color-lang-mr: #7b1fa2;
+  --color-lang-mr: #8b2fc9;
 
   /* ---------- Type ---------- */
-  --font-display: "Barlow Condensed", "Barlow Condensed Fallback", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Inter Variable", "Inter Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Anek Latin Variable", "Anek Devanagari Variable", "Anek Kannada Variable", "Anek Tamil Variable",
+    "Anek Telugu Variable", "Anek Fallback", system-ui, sans-serif;
+  --font-sans: "Anek Latin Variable", "Anek Devanagari Variable", "Anek Kannada Variable", "Anek Tamil Variable",
+    "Anek Telugu Variable", "Anek Fallback", system-ui, sans-serif;
 
-  --text-hero: 3.25rem;
-  --text-hero--line-height: 3.375rem;
-  --text-title: 2.5rem;
-  --text-title--line-height: 2.75rem;
-  --text-section: 1.75rem;
-  --text-section--line-height: 2rem;
-  --text-numeral: 6rem;
-  --text-numeral--line-height: 5.5rem;
+  /* Easy on the eyes: the whole weight scale sits a notch lighter than Tailwind's defaults. Components keep
+     semantic classes (font-black = "the loudest we go"); the theme decides how heavy that is. */
+  --font-weight-medium: 500;
+  --font-weight-semibold: 550;
+  --font-weight-bold: 600;
+  --font-weight-extrabold: 650;
+  --font-weight-black: 700;
 
-  /* ---------- Shape & depth ---------- */
+  --text-hero: 2.75rem;
+  --text-hero--line-height: 1;
+  --text-title: 2.125rem;
+  --text-title--line-height: 1.05;
+  --text-section: 1.5rem;
+  --text-section--line-height: 1.15;
+  --text-numeral: 5rem;
+  --text-numeral--line-height: 0.9;
+
+  /* ---------- Shape & depth: die-cut stickers (white edge + lifted shadow), jelly buttons ---------- */
   --radius-card: 28px;
-  --radius-tile: 20px;
-  --radius-icon: 18px;
-  --radius-plate: 8px;
+  --radius-tile: 22px;
+  --radius-icon: 16px;
+  --radius-plate: 999px;
 
-  --shadow-card: 0 1px 2px rgb(26 21 35 / 0.04), 0 8px 24px rgb(26 21 35 / 0.06);
-  --shadow-float: 0 12px 32px rgb(90 59 231 / 0.28);
-  --shadow-night: 0 16px 40px rgb(27 22 34 / 0.35);
+  --shadow-card: 0 10px 24px -10px rgb(21 19 64 / 0.35);
+  --shadow-pop: 0 10px 24px -10px rgb(21 19 64 / 0.35);
+  --shadow-float: 0 18px 40px -12px rgb(21 19 64 / 0.4);
+  --shadow-night: 0 10px 24px -10px rgb(21 19 64 / 0.5);
+  --drop-shadow-sticker: 0 6px 8px rgb(21 19 64 / 0.25);
 
   /* ---------- Motion ---------- */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
   --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-wobble: wobble 0.32s ease-in-out;
+  --animate-bob: bob 2.4s ease-in-out infinite;
+  --animate-shake: shake 0.4s ease-in-out;
+  --animate-ticker: ticker 28s linear infinite;
+  --animate-jiggle: jiggle 2.8s ease-in-out infinite;
+  --animate-blink: blink 1.2s ease-in-out infinite;
   @keyframes shimmer {
-    from { background-position: -200% 0; }
-    to { background-position: 200% 0; }
+    from {
+      background-position: -200% 0;
+    }
+    to {
+      background-position: 200% 0;
+    }
+  }
+  @keyframes wobble {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-6px);
+    }
+    50% {
+      transform: translateX(6px);
+    }
+    75% {
+      transform: translateX(-3px);
+    }
+  }
+  @keyframes bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    20% {
+      transform: translate(-4px, 2px);
+    }
+    40% {
+      transform: translate(4px, -2px);
+    }
+    60% {
+      transform: translate(-3px, -1px);
+    }
+    80% {
+      transform: translate(2px, 1px);
+    }
+  }
+  /* The ticker content is duplicated once, so -50% loops seamlessly. */
+  @keyframes ticker {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  /* A sticker that can't sit still. */
+  @keyframes jiggle {
+    0%,
+    86%,
+    100% {
+      transform: rotate(var(--tilt, -3deg));
+    }
+    90% {
+      transform: rotate(calc(var(--tilt, -3deg) + 5deg)) scale(1.04);
+    }
+    95% {
+      transform: rotate(calc(var(--tilt, -3deg) - 3deg));
+    }
+  }
+  /* "typing…" dots */
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 0.25;
+      transform: translateY(0);
+    }
+    40% {
+      opacity: 1;
+      transform: translateY(-3px);
+    }
   }
 }
 
-/* Height variants (docs/RESPONSIVE.md §1) */
+/* Height variants (RESPONSIVE.md §1) */
 @custom-variant short (@media (max-height: 699px));
 @custom-variant tall (@media (min-height: 900px));
 
-/* Metric-matched fallbacks: no layout shift while fonts load */
+/* Metric-matched fallback while Anek loads: no layout jump. */
 @font-face {
-  font-family: "Inter Fallback";
+  font-family: "Anek Fallback";
   src: local("Arial");
-  size-adjust: 107%;
-  ascent-override: 90%;
-}
-@font-face {
-  font-family: "Barlow Condensed Fallback";
-  src: local("Arial Narrow"), local("Arial");
-  size-adjust: 82%;
-  ascent-override: 105%;
+  size-adjust: 96%;
+  ascent-override: 102%;
 }
 
 @layer base {
@@ -113,12 +227,29 @@
   }
   body {
     @apply bg-canvas font-sans text-ink antialiased;
+    font-weight: 450;
+    line-height: 1.45;
+        /* Doodle confetti (D41): sparse hand-drawn marks in faint brand colours — no ruled boxes, no gradients. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='360' viewBox='0 0 360 360' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E %3Cpath d='M28 52c10-12 20 12 30 0s20 12 30 0' stroke='%237088ff' stroke-opacity='.28' stroke-width='3.5'/%3E %3Ccircle cx='250' cy='40' r='9' stroke='%23ff8ad8' stroke-opacity='.4' stroke-width='3.5'/%3E %3Ccircle cx='318' cy='118' r='4.5' fill='%2393c20a' fill-opacity='.35'/%3E %3Cpath d='M170 112l10-12 10 12 10-12 10 12' stroke='%23ff5b3a' stroke-opacity='.25' stroke-width='3.5'/%3E %3Cpath d='M78 168v18M69 177h18' stroke='%233ec5ff' stroke-opacity='.4' stroke-width='3.5'/%3E %3Cpath d='M282 214l14 24h-28z' stroke='%237088ff' stroke-opacity='.26' stroke-width='3.5'/%3E %3Cpath d='M120 262c14-6 26 4 22 16s-24 14-30 4 0-16 8-20z' fill='%23c6f432' fill-opacity='.35'/%3E %3Cpath d='M222 300c8-10 18 10 26 0s18 10 26 0' stroke='%23ff8ad8' stroke-opacity='.32' stroke-width='3.5'/%3E %3Ccircle cx='32' cy='300' r='4.5' fill='%237088ff' fill-opacity='.3'/%3E %3Ccircle cx='196' cy='196' r='3.5' fill='%23ff5b3a' fill-opacity='.3'/%3E %3Cpath d='M330 300v14M323 307h14' stroke='%2393c20a' stroke-opacity='.4' stroke-width='3'/%3E %3Ccircle cx='120' cy='60' r='3.5' fill='%233ec5ff' fill-opacity='.4'/%3E %3C/svg%3E");
+    background-size: 360px 360px;
+    background-attachment: fixed;
+  }
+  /* Headings and big numbers: the same family, a little wider — character without a second font. */
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    font-stretch: 112%;
+    letter-spacing: -0.01em;
   }
   :focus-visible {
-    @apply ring-4 ring-brand/30 outline-none;
+    @apply ring-4 ring-brand/40 outline-none;
   }
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+    *,
+    *::before,
+    *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
@@ -126,9 +257,74 @@
   }
 }
 
+/* A die-cut sticker: white edge, lifted shadow. Works on paper and on colour. */
+@utility pop {
+  border: 3px solid var(--color-surface);
+  box-shadow:
+    0 1px 0 rgb(21 19 64 / 0.06),
+    0 10px 22px -10px rgb(21 19 64 / 0.38);
+}
+@utility pop-sm {
+  border: 2px solid var(--color-surface);
+  box-shadow:
+    0 1px 0 rgb(21 19 64 / 0.06),
+    0 6px 14px -6px rgb(21 19 64 / 0.32);
+}
+/* Jelly press: a coloured bottom lip (set --lip per surface), a glossy top edge, squish on press. */
+@utility press {
+  --lip-c: var(--lip, rgb(21 19 64 / 0.22));
+  box-shadow:
+    inset 0 -4px 0 rgb(0 0 0 / 0.1),
+    inset 0 3px 0 rgb(255 255 255 / 0.45),
+    0 5px 0 var(--lip-c),
+    0 12px 20px -10px rgb(21 19 64 / 0.4);
+  transition:
+    transform 90ms ease-out,
+    box-shadow 90ms ease-out;
+  &:active:not(:disabled) {
+    transform: translateY(4px);
+    box-shadow:
+      inset 0 -2px 0 rgb(0 0 0 / 0.1),
+      inset 0 3px 0 rgb(255 255 255 / 0.45),
+      0 1px 0 var(--lip-c);
+  }
+}
+
+/* Sticker tilts: set --tilt so `animate-jiggle` keeps the angle. */
+@utility tilt-l {
+  --tilt: -3deg;
+  transform: rotate(-3deg);
+}
+@utility tilt-r {
+  --tilt: 2.5deg;
+  transform: rotate(2.5deg);
+}
+
 @utility scrollbar-none {
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* Ticket stub: perforated left edge for ledger rows. */
+@utility ticket-edge {
+  -webkit-mask-image: radial-gradient(circle at 0 10px, transparent 5px, #000 5.5px);
+  mask-image: radial-gradient(circle at 0 10px, transparent 5px, #000 5.5px);
+  -webkit-mask-size: 100% 20px;
+  mask-size: 100% 20px;
+  -webkit-mask-repeat: repeat-y;
+  mask-repeat: repeat-y;
+}
+
+/* Halftone dots behind celebrations (comic print, no image). */
+@utility halftone {
+  background-image: radial-gradient(rgb(21 19 64 / 0.1) 1.5px, transparent 1.6px);
+  background-size: 12px 12px;
+}
+
+/* Fade a scrolling strip out at both ends. */
+@utility edge-fade {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
 }

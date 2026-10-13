@@ -29,7 +29,7 @@ Real money attracts cheaters. Assume every client is hostile; the browser is onl
 | T14 | Restore-code brute force | 8 chars of Crockford base32 (~10¹²), hashed at rest, 5 attempts/hour/IP, rotates on use |
 | T15 | Payout fraud | UPI format validation, 3/day limit, 24 h cooling on first payout or UPI change, review queue for anomalies; phone OTP before real money |
 | T16 | Cost exhaustion (free tiers) | Request body 8 KB max, rate limits, CDN-cached immutable assets, Vercel Firewall rules, Neon compute budget (FREE_STACK.md §3) |
-| T17 | Lexicon scraping (answer lookup bots) | Lexicon never sent to clients; burnt words only per prompt |
+| T17 | Lexicon scraping (answer lookup bots) | The concept map never reaches clients; `GET /words` serves plain per-language word lists (no concept ids) for Smart Chips; burnt words only per prompt. Translation stacking (same concept in 2+ languages in one answer) never earns the Bhasha bonus (D39) |
 | T18 | Clickjacking | `frame-ancestors 'none'` |
 | T19 | Supply chain | Lockfile committed, `npm audit --omit=dev`, Dependabot, minimal deps, `gitleaks` |
 | T20 | Error/info leakage | Error handler returns only `code` + `requestId`; stack traces only in logs; `x-powered-by` disabled |
@@ -40,9 +40,9 @@ Real money attracts cheaters. Assume every client is hostile; the browser is onl
 |---|---|---|
 | `POST /auth/anon` | 20 / hour | IP |
 | `POST /auth/restore` | 5 / hour | IP |
-| `POST /packs` | 10 / hour | user |
+| `POST /packs` | 30 / hour (hoarding is capped separately: max 3 open packs) | user |
 | `POST /rounds` | 60 / minute | user |
-| `POST /packs/:id/collect` | 20 / hour | user |
+| `POST /packs/:id/collect` | 40 / hour | user |
 | `POST /daily/:day/answers` | 10 / day | user |
 | `POST /wallet/payouts` | 3 / day | user |
 | `PATCH /me` | 20 / hour | user |

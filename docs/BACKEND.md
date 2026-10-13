@@ -262,9 +262,9 @@ npm run setup                           # root: installs shared/, backend/, fron
 npm run db:up                           # backend/docker-compose.yml → Postgres 16 on :5433
 cp backend/.env.example backend/.env    # DATABASE_URL=postgres://postgres:dev@localhost:5433/samepinch
 npm run db:migrate --prefix backend && npm run db:seed --prefix backend
-npm run dev                             # concurrently: api on :3001, web on :5173
+npm run dev                             # concurrently: api on :3000, web on :5173
 ```
-`frontend/vite.config.ts` proxies `/api` → `http://localhost:3001`, matching production's same-origin setup.
+`frontend/vite.config.ts` proxies `/api` → `http://localhost:3000`, matching production's same-origin setup.
 
 ## 12. Testing
 

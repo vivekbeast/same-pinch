@@ -2,11 +2,13 @@
 
 Services and their free tiers: **FREE_STACK.md**. This file is the how-to.
 
+> **As built (docs/DECISIONS.md D36):** two Vercel projects with Root Directories `frontend` and `backend`; each `vercel.json` installs `../shared` first (keep "Include files outside the Root Directory" on). Set the web rewrite destination in `frontend/vercel.json` to your API project's URL. API env vars: `DATABASE_URL`, `SESSION_PEPPER`, `DEVICE_PEPPER`, `JOBS_SECRET`, `ALLOWED_ORIGINS` (the web origin), `APP_ORIGIN` (the web origin), `DEMO_MODE`, `NODE_ENV=production`, and for Google sign-in `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI=https://<web-origin>/api/auth/google/callback` (add that URI in the Google console too). GitHub: secrets `DATABASE_URL_OWNER`, `JOBS_SECRET`; variable `APP_URL`.
+
 ## 1. Environments
 
 | Env | Web | API | Database |
 |---|---|---|---|
-| local | `vite` on :5173 (proxies `/api`) | `tsx watch` on :3001 | Docker Postgres 16 (or a Neon `dev` branch) |
+| local | `vite` on :5173 (proxies `/api`) | `tsx watch` on :3000 | Docker Postgres 16 (or a Neon `dev` branch) |
 | preview | Vercel preview per PR | Vercel preview per PR | Neon `preview` branch |
 | production | `samepinch.vercel.app` | `samepinch-api.vercel.app` (reached via `/api` rewrite) | Neon `main` branch (Asia region) |
 
@@ -59,7 +61,7 @@ The web app needs no API URL — it always calls the relative `/api/v1`.
   import { buildApp } from "./app";
   const app = buildApp();
   export default app;
-  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) app.listen(3001);
+  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) app.listen(3000);
   ```
 - Settings → Functions → **Region** next to the DB (e.g. `sin1` for Singapore, `bom1` for Mumbai).
 - Env vars from §2 (production values) for Production and Preview (preview uses the Neon `preview` branch URL).

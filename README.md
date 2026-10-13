@@ -38,6 +38,7 @@ Every verified pinch is a human-agreed label (the ESP Game principle, 2003): rea
 | 20 | [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) | Vercel + Neon setup, CI/CD, go-live checklist |
 | 21 | [`docs/ROADMAP.md`](./docs/ROADMAP.md) | Submission email draft |
 | 22 | [`docs/DECISIONS.md`](./docs/DECISIONS.md) | Settled conflicts between docs (wins over others) |
+| 23 | [`docs/UI_DIRECTION.md`](./docs/UI_DIRECTION.md) | The upgraded creative direction: plates, stamps, Plate Map |
 
 ---
 
@@ -50,7 +51,7 @@ npm run setup                               # installs root, shared/, backend/, 
 cp backend/.env.example backend/.env        # then generate the three secrets (openssl rand -base64 48)
 npm run db:up                               # Postgres 16 on localhost:5433
 npm run db:migrate --prefix backend && npm run db:seed --prefix backend
-npm run dev                                 # api :3001 + web :5173 (web proxies /api)
+npm run dev                                 # api :3000 + web :5173 (web proxies /api)
 ```
 
 | Command | What |
@@ -58,7 +59,17 @@ npm run dev                                 # api :3001 + web :5173 (web proxies
 | `npm run dev` | API + web with hot reload |
 | `npm run build` | Build backend (tsup, bundles shared) and frontend (Vite + PWA) |
 | `npm run typecheck` / `npm run lint` / `npm test` | Quality gates |
+| `npm run size --prefix frontend` | First-paint budget gate (JS ≤ 150 KB, CSS ≤ 18 KB gzip) |
+| `npm run fetch:photos --prefix frontend` | Fetch/refresh CC0 prompt photos (credits in `content/CREDITS.md`) |
 | `npm run db:up` / `npm run db:down` | Start / stop local Postgres |
+| `npm run db:migrate --prefix backend` | Apply SQL migrations (`backend/drizzle/`) |
+| `npm run db:seed --prefix backend` | Seed content, partners and the demo account (idempotent) |
+| `npm run db:reset --prefix backend` | Wipe the local DB volume, migrate and seed |
+| `npm run db:generate --prefix backend` | New migration after editing `schema.ts` |
+
+Demo account: restore code **`SAME7777`**.
+
+Google sign-in (optional): set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` in `backend/.env`. In the Google console, the authorized JavaScript origin is `http://localhost:5173` and the redirect URI is `http://localhost:3000/api/auth/google/callback`.
 
 Settled design conflicts: [`docs/DECISIONS.md`](./docs/DECISIONS.md). Deploying for free: `docs/FREE_STACK.md` → `docs/DEPLOYMENT.md`.
 

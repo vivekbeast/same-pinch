@@ -1,0 +1,64 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: samepinch
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    env:
+      # Backend tests create and seed `samepinch_test` on this server (backend/test/global-setup.ts).
+      DATABASE_URL: postgres://postgres:test@localhost:5432/samepinch
+      SESSION_PEPPER: ci-session-pepper-ci-session-pepper-ci-1234
+      DEVICE_PEPPER: ci-device-pepper-ci-device-pepper-ci-12345
+      JOBS_SECRET: ci-jobs-secret-ci-jobs-secret-ci-jobs-123456
+      ALLOWED_ORIGINS: http://localhost:5173
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            shared/package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+      - name: Install (root, shared, backend, frontend)
+        run: npm ci && npm ci --prefix shared && npm ci --prefix backend && npm ci --prefix frontend
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Bundle budget (initial JS ≤ 150 KB, CSS ≤ 18 KB gzip)
+        run: npm run size --prefix frontend
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  migrate-prod:
+    if: github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: production # manual approval
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci --prefix shared && npm ci --prefix backend
+      - run: npm run db:migrate --prefix backend
+        env:
+          DATABASE_URL_OWNER: ${{ secrets.DATABASE_URL_OWNER }}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm ci --prefix ../shared && npm ci",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".",
+  "functions": { "api/index.mjs": { "includeFiles": "dist/**" } },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index.mjs" }],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    }
+  ]
+}

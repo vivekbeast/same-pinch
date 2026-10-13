@@ -1,5 +1,7 @@
 # API.md — REST contract (Express)
 
+> Implemented in `backend/src/routes/`. Request/response shapes are the zod schemas in `shared/src/api.ts`; changes made while building are in `docs/DECISIONS.md` D22–D25.
+
 Base path: `/api/v1`. JSON only. Same origin as the web app (proxied), so the session cookie travels automatically.
 
 **Every non-GET request must send:** `Content-Type: application/json`, `X-SP-Client: web`, `X-SP-Device: <uuid>`. Requests without them get `403 FORBIDDEN`.
@@ -40,10 +42,25 @@ Shared zod schemas for every request/response live in `shared/src/api.ts` and ar
 
 | Method & path | Body | Response | Limit |
 |---|---|---|---|
-| `POST /auth/anon` | `{ uiLang, ageConfirmed: true }` | `201 { user: Me }` + `Set-Cookie: sp_sid=…` | 20/hour/IP |
+| `POST /auth/anon` | `{ uiLang, ageConfirmed: true, termsAccepted: true, stateCode, city? }` (D45) | `201 { user: Me }` + `Set-Cookie: sp_sid=…` | 20/hour/IP |
 | `POST /auth/restore` | `{ code: "8 chars" }` | `200 { user: Me }` + new cookie; code rotates | 5/hour/IP |
 | `POST /auth/logout` | — | `204`, cookie cleared | — |
 | `POST /auth/logout-all` | — | `204` | 5/day |
+| `POST /auth/demo` | — | `200 { user: Me }` signs into the shared demo account (DEMO_MODE only) | 20/hour/IP |
+| `POST /auth/restore-code` | — | `200 { code }` rotates and shows the restore code (Settings) | 10/day |
+
+## Securing the account with Google (stage 2) — docs/DECISIONS.md D27–D28
+
+Browser navigations (not fetch): the server-side OAuth redirect flow.
+
+| Method & path | Notes |
+|---|---|
+| `GET /auth/google/start?intent=login|link&returnTo=/path` | 302 → Google. `link` needs a session. Sets the `sp_oauth` flow cookie. 30/hour/IP |
+| `GET /api/auth/google/callback?code&state` | The registered redirect URI (outside `/api/v1`). 302 → `APP_ORIGIN + returnTo` with `signed_in=google`, `linked=google` or `auth_error=…`; sets `sp_sid` on sign-in |
+| `DELETE /auth/link/google` | `200 { user: Me }` |
+
+`Me` includes `identities: { provider: "google", display, linkedAt }[]` and `payout: { mode, eligible, needs: ("identity"|"kyc")[] }`.
+`POST /wallet/payouts` returns `VERIFICATION_REQUIRED 409` until `needs` is empty (stage 3). `GET /config` includes `linking: { google }` and `payoutMode`.
 
 ## Me
 
@@ -64,7 +81,7 @@ type Me = {
 
 ## Packs & rounds (the game)
 
-### `POST /packs` → create/get the next pack (10/hour)
+### `POST /packs` → create/get the next pack (30/hour; 5-round packs, D42)
 ```json
 {
   "packId": "uuid", "isPaid": true,
@@ -74,13 +91,16 @@ type Me = {
   ]
 }
 ```
-Gold prompts look exactly like normal rounds. Partner answers are **never** included.
+Gold prompts look exactly like normal rounds. Partner answers are **never** included. Response also has `answered: promptId[]`.
+
+### `GET /packs/:packId` → same shape as above (resume an interrupted pack)
 
 ### `POST /rounds` → submit one round (60/min)
 ```ts
 // request
 { attemptId: uuid, packId: uuid, promptId: uuid,
-  words: { text: string, lang: Lang }[1..3], playedAt: ISODate, responseMs: number }
+  words: { text: string, lang: Lang }[0..3], playedAt: ISODate, responseMs: number,
+  pinch?: { x: 0..1000, y: 0..1000 } | null }   // photo rounds only (D39); otherwise 422
 
 // response
 {
@@ -90,13 +110,31 @@ Gold prompts look exactly like normal rounds. Partner answers are **never** incl
              words: { text: string; lang: Lang; matched: boolean }[] },
   xp: number,
   earnPaise: number,        // provisional until the pack is collected
-  newRegion?: string
+  newRegion?: string,
+  // Pinch the Picture (D39): where you both pinched; partner is null if they didn't pinch
+  spot: { you: {x, y}; partner: {x, y} | null; same: boolean } | null
 }
 ```
 - **Idempotent** on `attemptId`: resending returns the same result, never double-pays.
+- No words **and** no pinch = `skipped`. A pinch alone is a played round (result `miss` unless words matched).
+- Same spot = within `pinch.sameSpot` (170 on the 0–1000 grid) of the partner's pinch → `+pinch.spotXp` XP, **never ₹**.
 - `playedAt` must be within the last 48 h and not more than 5 min in the future.
 
-### `POST /packs/:packId/collect` → finalise (20/hour)
+### `GET /words` → Smart Chips word lists (public, `Cache-Control: public, max-age=86400`, ETag)
+```ts
+{ version: string, words: { en: string[]; hi: string[]; kn: string[]; ta: string[]; ... } }
+```
+Plain lexicon terms per language (native script + romanised). **No concept ids** — the cross-language map
+stays on the server (SECURITY T17). Clients autocomplete within a language only.
+
+### `GET /people` → people you've shared a moment with (D44)
+```ts
+{ people: { handle: string; avatar: string; stateCode: string | null;
+            moments: number; lastAt: ISODate; last: "exact" | "bhasha" | "spot" }[] }   // newest first, ≤ 30
+```
+Partners on rounds where your words matched or you pinched the same spot. Handles only — never ids.
+
+### `POST /packs/:packId/collect` → finalise (40/hour)
 ```ts
 {
   earnedPaise: number, ledgerStatus: "credited" | "pending_review",

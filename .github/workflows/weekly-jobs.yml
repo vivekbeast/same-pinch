@@ -1,0 +1,12 @@
+# Weekly housekeeping: old events, rate-limit windows, expired sessions (docs/DATA_MODEL.md §4).
+name: weekly-jobs
+on:
+  schedule:
+    - cron: "0 22 * * 0" # Mondays 03:30 IST
+  workflow_dispatch:
+permissions: {}
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS -X POST -H "Authorization: Bearer ${{ secrets.JOBS_SECRET }}" "${{ vars.APP_URL }}/api/v1/jobs/prune"

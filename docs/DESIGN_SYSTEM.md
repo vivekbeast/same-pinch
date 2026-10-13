@@ -1,5 +1,7 @@
 # DESIGN_SYSTEM.md — the Same Pinch look
 
+> The creative upgrade on top of this file lives in [`UI_DIRECTION.md`](./UI_DIRECTION.md) (docs/DECISIONS.md D29).
+
 The visual language is translated from the **RideLocker** reference screens: calm canvas, white rounded cards, one confident violet, near-black "hero" cards with one huge coloured number, condensed bold headlines, and very plain microcopy. Same Pinch keeps that discipline, **warms it up** (chai-cream canvas, plum-black night cards) and adds two playful accents: **Pinch Coral** for the moment of a match and **Marigold** for rewards.
 
 > Rule of thumb: the screen is calm; the *pinch* is loud.

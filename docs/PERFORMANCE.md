@@ -116,7 +116,7 @@ export default defineConfig({
     }),
   ],
   resolve: { alias: { "@": path.resolve(__dirname, "src") } },
-  server: { proxy: { "/api": "http://localhost:3001" } },     // same-origin in dev too
+  server: { proxy: { "/api": "http://localhost:3000" } },     // same-origin in dev too
   build: { target: "es2020", cssCodeSplit: true, sourcemap: "hidden", modulePreload: { polyfill: false } },
 });
 ```

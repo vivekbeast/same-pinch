@@ -16,8 +16,8 @@ export default defineConfig({
         name: "Same Pinch",
         short_name: "Same Pinch",
         description: "Think alike. Any language. Get paid for every match.",
-        theme_color: "#5A3BE7",
-        background_color: "#F7F4EF",
+        theme_color: "#3D5AFE",
+        background_color: "#EDF1FC",
         display: "standalone",
         start_url: "/",
         lang: "en-IN",
@@ -48,12 +48,12 @@ export default defineConfig({
       "@shared": path.resolve(import.meta.dirname, "../shared/src/index.ts"),
     },
   },
-  // Same-origin in dev too: the API runs on :3001 behind this proxy.
+  // Same-origin in dev too: the API runs on :3000 behind this proxy.
   server: {
     port: 5173,
-    proxy: { "/api": "http://localhost:3001" },
+    proxy: { "/api": "http://localhost:3000" },
     fs: { allow: [import.meta.dirname, path.resolve(import.meta.dirname, "../shared")] },
   },
-  preview: { port: 4173, proxy: { "/api": "http://localhost:3001" } },
+  preview: { port: 4173, proxy: { "/api": "http://localhost:3000" } },
   build: { target: "es2022", cssCodeSplit: true, sourcemap: "hidden", modulePreload: { polyfill: false } },
 });

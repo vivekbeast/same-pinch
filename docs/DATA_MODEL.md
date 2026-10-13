@@ -1,5 +1,7 @@
 # DATA_MODEL.md — PostgreSQL schema (Drizzle ORM)
 
+> **Source of truth:** `backend/src/db/schema.ts` and the SQL in `backend/drizzle/`. This document is the original design; the refinements made while building it are listed in `docs/DECISIONS.md` D16–D21.
+
 Principles
 - Postgres is the single source of truth: users, sessions, game data, money, rate limits.
 - Only the Express API talks to the database. Authorization happens in services (`where userId = req.user.id` on every user-scoped query) — enforced by a repository helper and tests (SECURITY.md §8).

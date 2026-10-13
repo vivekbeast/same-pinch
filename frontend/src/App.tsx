@@ -1,14 +1,23 @@
-// Temporary setup screen — replaced by the router + AppShell in the frontend phase.
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { lazy, Suspense } from "react";
+import { RouterProvider } from "react-router/dom";
+import { Background } from "./app/Background";
+import { router } from "./app/router";
+import { persistOptions, queryClient } from "./lib/query";
+import { useLang } from "./lib/i18n";
+
+const ToasterHost = lazy(() => import("./app/ToasterHost"));
+
 export default function App() {
+  useLang(); // re-render the tree when the UI language changes
   return (
-    <main className="mx-auto flex min-h-dvh max-w-[560px] flex-col gap-4 px-5 py-8">
-      <h1 className="font-display text-title font-bold">Same Pinch</h1>
-      <p className="text-ink-muted">Setup check: tokens, fonts and Tailwind are wired.</p>
-      <section className="rounded-card bg-night p-6 text-white shadow-night">
-        <span className="font-display text-numeral font-bold text-pinch">7</span>
-        <p className="font-display text-section font-bold">Day flame</p>
-      </section>
-      <button className="h-14 rounded-full bg-brand font-semibold text-white shadow-float">Play 10 rounds</button>
-    </main>
+    // The player's own data is persisted, so Today, the flame and the wallet open offline (docs/ARCHITECTURE.md §4).
+    <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
+      <RouterProvider router={router} />
+      <Background />
+      <Suspense fallback={null}>
+        <ToasterHost />
+      </Suspense>
+    </PersistQueryClientProvider>
   );
 }
