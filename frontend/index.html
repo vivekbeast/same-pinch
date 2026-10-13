@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Same Pinch — Think alike. Get paid.</title>
+    <meta name="description" content="Match a stranger's word in any Indian language. Earn for every verified match. 2 minutes a day." />
+    <meta name="theme-color" content="#5A3BE7" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta property="og:title" content="Same Pinch" />
+    <meta property="og:description" content="Think alike. Any language. Get paid for every match." />
+    <!-- Static app shell: paints before JS runs (docs/ARCHITECTURE.md §7). React replaces #root's content. -->
+    <style>
+      body{margin:0;background:#f7f4ef;color:#1a1523;font-family:system-ui,sans-serif}
+      .sp-shell{max-width:560px;margin:0 auto;padding:24px 20px}
+      .sp-shell h1{font:700 40px/44px "Arial Narrow",Arial,sans-serif;margin:8px 0 4px}
+      .sp-shell p{margin:0 0 24px;color:#6b6173}
+      .sp-card{height:132px;border-radius:28px;background:#f0ebe3;margin-bottom:16px}
+      .sp-card.n{height:208px;background:#1b1622}
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="sp-shell" aria-busy="true">
+        <h1>Same Pinch</h1>
+        <p>Think alike. Get paid.</p>
+        <div class="sp-card"></div>
+        <div class="sp-card n"></div>
+        <div class="sp-card"></div>
+      </div>
+    </div>
+    <noscript>
+      <div style="max-width:480px;margin:40px auto;padding:24px;border-radius:28px;background:#1b1622;color:#fff;font-family:system-ui">
+        Please turn on JavaScript to play Same Pinch.
+      </div>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "@samepinch/shared",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Zod schemas, types, normalize(), detectLang() and constants. Owns the single zod copy used by frontend and backend (imported via the @shared alias).",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests",
+    "format": "prettier --write src"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.2",
+    "vitest": "5.0.4"
+  }
+}

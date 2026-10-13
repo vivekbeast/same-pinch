@@ -1,0 +1,52 @@
+{
+  "name": "@samepinch/backend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "build": "tsup",
+    "start": "node --env-file=.env dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests",
+    "db:up": "docker compose up -d --wait db",
+    "db:down": "docker compose down",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx --env-file=.env src/db/migrate.ts",
+    "db:seed": "tsx --env-file=.env src/db/seed/index.ts",
+    "db:studio": "drizzle-kit studio",
+    "format": "prettier --write src"
+  },
+  "dependencies": {
+    "cookie-parser": "1.4.7",
+    "drizzle-orm": "0.45.4",
+    "express": "5.3.0",
+    "helmet": "8.3.0",
+    "pino": "10.4.0",
+    "pino-http": "11.0.0",
+    "postgres": "3.4.9"
+  },
+  "overrides": {
+    "esbuild": "0.28.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/cookie-parser": "1.4.10",
+    "@types/express": "5.0.6",
+    "@types/node": "26.6.5",
+    "@types/supertest": "7.2.1",
+    "drizzle-kit": "0.31.11",
+    "eslint": "9.39.5",
+    "globals": "17.13.0",
+    "pino-pretty": "13.2.0",
+    "prettier": "3.9.10",
+    "supertest": "7.3.1",
+    "tsup": "8.5.1",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.2",
+    "vitest": "5.0.4"
+  }
+}

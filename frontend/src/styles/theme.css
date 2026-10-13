@@ -1,0 +1,134 @@
+/* src/styles/theme.css — THE single source of design truth (docs/DESIGN_SYSTEM.md §9) */
+@import "tailwindcss";
+
+/* Self-hosted fonts (latin subsets) */
+@import "@fontsource/barlow-condensed/latin-600.css";
+@import "@fontsource/barlow-condensed/latin-700.css";
+@import "@fontsource-variable/inter/wght.css";
+
+@theme {
+  /* ---------- Breakpoints (docs/RESPONSIVE.md) — mirrored in src/lib/breakpoints.ts ---------- */
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+  --breakpoint-2xl: 96rem;
+
+  /* ---------- Colours: Chai & Marigold ---------- */
+  --color-canvas: #f7f4ef;
+  --color-surface: #ffffff;
+  --color-surface-2: #f0ebe3;
+  --color-line: #e8e1d6;
+
+  --color-ink: #1a1523;
+  --color-ink-2: #3d3547;
+  --color-ink-muted: #6b6173;
+  --color-ink-faint: #9c92a0;
+
+  --color-brand: #5a3be7;
+  --color-brand-600: #4529c9;
+  --color-brand-400: #6e50f2;
+  --color-brand-soft: #eee9ff;
+  --color-brand-ink: #33219a;
+
+  --color-night: #1b1622;
+  --color-night-2: #272030;
+  --color-night-glass: rgb(27 22 34 / 0.62);
+
+  --color-pinch: #ff7a6b;
+  --color-pinch-soft: #ffe9e4;
+  --color-pinch-ink: #b8382a;
+
+  --color-marigold: #ffb020;
+  --color-marigold-soft: #fff3d6;
+  --color-marigold-ink: #9a5800;
+
+  --color-success: #177245;
+  --color-success-soft: #e5f5ec;
+  --color-success-bright: #5be49b;
+  --color-danger: #c0322b;
+  --color-danger-soft: #fdebe9;
+
+  --color-lang-en: #1f4fbf;
+  --color-lang-hi: #e8710a;
+  --color-lang-kn: #c9a400;
+  --color-lang-ta: #b3261e;
+  --color-lang-te: #0b8043;
+  --color-lang-mr: #7b1fa2;
+
+  /* ---------- Type ---------- */
+  --font-display: "Barlow Condensed", "Barlow Condensed Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter Variable", "Inter Fallback", ui-sans-serif, system-ui, sans-serif;
+
+  --text-hero: 3.25rem;
+  --text-hero--line-height: 3.375rem;
+  --text-title: 2.5rem;
+  --text-title--line-height: 2.75rem;
+  --text-section: 1.75rem;
+  --text-section--line-height: 2rem;
+  --text-numeral: 6rem;
+  --text-numeral--line-height: 5.5rem;
+
+  /* ---------- Shape & depth ---------- */
+  --radius-card: 28px;
+  --radius-tile: 20px;
+  --radius-icon: 18px;
+  --radius-plate: 8px;
+
+  --shadow-card: 0 1px 2px rgb(26 21 35 / 0.04), 0 8px 24px rgb(26 21 35 / 0.06);
+  --shadow-float: 0 12px 32px rgb(90 59 231 / 0.28);
+  --shadow-night: 0 16px 40px rgb(27 22 34 / 0.35);
+
+  /* ---------- Motion ---------- */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
+  }
+}
+
+/* Height variants (docs/RESPONSIVE.md §1) */
+@custom-variant short (@media (max-height: 699px));
+@custom-variant tall (@media (min-height: 900px));
+
+/* Metric-matched fallbacks: no layout shift while fonts load */
+@font-face {
+  font-family: "Inter Fallback";
+  src: local("Arial");
+  size-adjust: 107%;
+  ascent-override: 90%;
+}
+@font-face {
+  font-family: "Barlow Condensed Fallback";
+  src: local("Arial Narrow"), local("Arial");
+  size-adjust: 82%;
+  ascent-override: 105%;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+  }
+  :focus-visible {
+    @apply ring-4 ring-brand/30 outline-none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
