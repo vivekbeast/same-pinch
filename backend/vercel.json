@@ -3,6 +3,9 @@
   "installCommand": "npm ci --prefix ../shared && npm ci",
   "buildCommand": "npm run build",
   "outputDirectory": "public",
+  "regions": [
+    "sin1"
+  ],
   "functions": {
     "api/index.mjs": {
       "includeFiles": "dist/**"

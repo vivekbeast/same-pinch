@@ -163,7 +163,7 @@ jobs:
 ```
 Vercel's Git integration deploys both projects (preview on PR, production on `main`). Keep migrations **backward compatible** (add first, remove later) because the new frontend and API may go live a minute apart.
 
-Scheduled workflows: `keep-warm.yml` (FREE_STACK.md §3) and `weekly-jobs.yml`:
+Scheduled workflow: `weekly-jobs.yml` (there is no keep-warm ping; see FREE_STACK.md §3 and D56):
 ```yaml
 on: { schedule: [{ cron: "0 22 * * 0" }] }   # Mondays 03:30 IST
 jobs:

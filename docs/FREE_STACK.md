@@ -38,19 +38,11 @@ Neon free gives **100 CU-hours per project per month** and always scales to zero
 
 - **Don't** keep the DB warm around the clock.
 - Cold start (DB waking) adds roughly half a second to a second on the first request; the web app hides this behind the skeleton + IndexedDB cache.
-- During the review window only, a GitHub Action pings `/api/v1/health` every 5 minutes from about 08:30–21:30 IST on weekdays (≈ 70 CU-hours/month).
-
-```yaml
-# .github/workflows/keep-warm.yml
-on:
-  schedule: [{ cron: "*/5 3-15 * * 1-5" }]   # 08:30–21:25 IST (UTC+5:30), weekdays
-jobs:
-  ping:
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -fsS https://samepinch.vercel.app/api/v1/health > /dev/null
-```
-(GitHub may delay scheduled runs by several minutes; that's fine.)
+- **No keep-warm ping** (D56). The game is offline-first: packs are prefetched to IndexedDB, rounds play without the
+  network and answers sync later, so the 1–3 s wake-up only touches the first API call after a quiet spell. A
+  GitHub Actions ping every 5 minutes would also cost ≈ 3,400 Actions minutes a month on a private repo, more
+  than the free 2,000, and running out stops CI. If you want a down-alert later, use a free external monitor
+  (UptimeRobot, cron-job.org) on `/api/v1/health`; it costs no Actions minutes.
 
 ## 4. Region choice
 
