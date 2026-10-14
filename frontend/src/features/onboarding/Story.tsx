@@ -66,7 +66,18 @@ function Camera({ scene, still, children }: { scene: number; still: boolean | nu
           animate={still ? undefined : shot.animate}
           transition={shot.transition}
         >
-          <img src={HERO.src} srcSet={HERO.srcSet} sizes="(min-width: 640px) 720px, 180vw" alt="" width={720} height={720} className="size-full object-cover" />
+          {/* The largest thing on a first visit (the LCP): fetch it first. */}
+          <img
+            src={HERO.src}
+            srcSet={HERO.srcSet}
+            sizes="(min-width: 640px) 720px, 180vw"
+            alt=""
+            width={720}
+            height={720}
+            fetchPriority="high"
+            decoding="async"
+            className="size-full object-cover"
+          />
           {children}
         </m.div>
       </div>
