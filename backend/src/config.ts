@@ -19,7 +19,8 @@ const Env = z.object({
   GOOGLE_REDIRECT_URI: z.url().optional(),
 });
 
-// Crash on boot if misconfigured.
-const parsed = Env.parse(process.env);
+// Crash on boot if misconfigured. An empty value (`GOOGLE_CLIENT_ID=` in .env.example) means "not set", not
+// "invalid", so a fresh clone boots with the optional features simply switched off.
+const parsed = Env.parse(Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== "")));
 export const env = { ...parsed, APP_ORIGIN: parsed.APP_ORIGIN ?? parsed.ALLOWED_ORIGINS[0] ?? "http://localhost:5173" };
 export type Env = typeof env;
