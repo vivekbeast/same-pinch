@@ -8,6 +8,7 @@
     "dev": "tsx watch --env-file=.env src/index.ts",
     "build": "tsup",
     "start": "node --env-file=.env dist/index.js",
+    "env": "node scripts/make-env.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",

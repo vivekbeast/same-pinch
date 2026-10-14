@@ -1,0 +1,386 @@
+<!doctype html>
+<!--
+  Explainer film (≈2:45): what was built, the choices, and what was left out. Same engine as promo.html:
+  window.render(t) sets every frame from t, so render.mjs steps it deterministically. Footage comes from
+  capture.mjs (all eight scenes). Colours mirror src/styles/theme.css; this file is a build tool, not the app.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Same Pinch explainer</title>
+    <style>
+      @font-face {
+        font-family: "Anek";
+        src: url("../../node_modules/@fontsource-variable/anek-latin/files/anek-latin-latin-wdth-normal.woff2") format("woff2-variations");
+        font-weight: 100 800;
+        font-stretch: 75% 125%;
+      }
+      @font-face {
+        font-family: "Anek";
+        src: url("../../node_modules/@fontsource-variable/anek-devanagari/files/anek-devanagari-devanagari-wdth-normal.woff2") format("woff2-variations");
+        font-weight: 100 800;
+        unicode-range: U+0900-097F;
+      }
+      @font-face {
+        font-family: "Anek";
+        src: url("../../node_modules/@fontsource-variable/anek-kannada/files/anek-kannada-kannada-wdth-normal.woff2") format("woff2-variations");
+        font-weight: 100 800;
+        unicode-range: U+0C80-0CFF;
+      }
+      @font-face {
+        font-family: "Anek";
+        src: url("../../node_modules/@fontsource-variable/anek-tamil/files/anek-tamil-tamil-wdth-normal.woff2") format("woff2-variations");
+        font-weight: 100 800;
+        unicode-range: U+0B80-0BFF;
+      }
+      :root {
+        --canvas: #edf1fc;
+        --surface: #ffffff;
+        --ink: #151340;
+        --ink-2: #2e2c5c;
+        --muted: #56557d;
+        --line: #cfd7f2;
+        --night: #151340;
+        --brand: #3d5afe;
+        --brand-soft: #dde3ff;
+        --lime: #c6f432;
+        --bubble: #ff8ad8;
+        --marigold: #ffd23f;
+        --sky: #3ec5ff;
+        --pinch: #ff5b3a;
+      }
+      * { box-sizing: border-box; margin: 0; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--canvas); }
+      body { font-family: "Anek", system-ui, sans-serif; color: var(--ink); }
+      #stage {
+        position: relative; width: 1920px; height: 1080px; overflow: hidden; background-color: var(--canvas);
+        background-image: linear-gradient(rgba(61, 90, 254, 0.06) 2px, transparent 2px),
+          linear-gradient(90deg, rgba(61, 90, 254, 0.06) 2px, transparent 2px);
+        background-size: 48px 48px;
+      }
+      .layer { position: absolute; inset: 0; opacity: 0; }
+      .pop { box-shadow: 0 6px 0 rgba(21, 19, 64, 0.18), 0 18px 40px rgba(21, 19, 64, 0.16); border: 4px solid #fff; }
+      [data-in] { opacity: 0; }
+
+      /* Captions beside footage */
+      .cap { position: absolute; left: 140px; top: 46%; width: 760px; transform: translateY(-50%); display: flex; flex-direction: column; gap: 26px; }
+      .wide .cap { width: 580px; left: 100px; }
+      .kicker { align-self: flex-start; padding: 10px 24px; border-radius: 999px; background: var(--lime); font-weight: 750; font-size: 28px; transform: rotate(-2deg); }
+      .title { font-weight: 800; font-size: 88px; line-height: 0.98; letter-spacing: -0.02em; }
+      .wide .title { font-size: 76px; }
+      .sub { font-weight: 550; font-size: 34px; line-height: 1.3; color: var(--muted); }
+
+      /* Devices */
+      .phone { position: absolute; right: 250px; top: 50%; width: 450px; height: 958px; margin-top: -500px; border-radius: 62px; background: var(--night); padding: 17px;
+        box-shadow: 0 10px 0 rgba(21, 19, 64, 0.25), 0 40px 90px rgba(21, 19, 64, 0.35); }
+      .phone video { width: 100%; height: 100%; border-radius: 46px; object-fit: cover; display: block; background: var(--canvas); }
+      .laptop { position: absolute; right: 80px; top: 50%; width: 1130px; margin-top: -400px; }
+      .laptop .screen { border-radius: 28px; background: var(--night); padding: 16px; box-shadow: 0 10px 0 rgba(21, 19, 64, 0.25), 0 40px 90px rgba(21, 19, 64, 0.35); }
+      .laptop video { width: 100%; aspect-ratio: 1440 / 900; border-radius: 16px; display: block; background: var(--canvas); }
+      .laptop .base { width: 1210px; height: 28px; margin: 0 -40px; border-radius: 0 0 28px 28px; background: #2e2c5c; }
+
+      /* Slides */
+      .slide { position: absolute; inset: 0; padding: 120px 150px 150px; display: flex; flex-direction: column; gap: 40px; }
+      .slide .title { font-size: 96px; max-width: 1500px; }
+      .points { display: flex; flex-direction: column; gap: 26px; margin-top: 8px; }
+      .point { display: flex; gap: 26px; align-items: flex-start; font-size: 40px; line-height: 1.3; font-weight: 560; color: var(--ink-2); max-width: 1560px; }
+      .point i { flex: none; width: 50px; height: 50px; margin-top: 2px; border-radius: 16px; background: var(--lime); display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: 26px; color: var(--ink); }
+      .point b { color: var(--ink); font-weight: 750; }
+      .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 8px; }
+      .card { background: var(--surface); border-radius: 30px; padding: 32px 36px; display: flex; flex-direction: column; gap: 12px; }
+      .card h3 { font-size: 40px; font-weight: 780; line-height: 1.1; }
+      .card p { font-size: 30px; line-height: 1.3; color: var(--muted); font-weight: 550; }
+      .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 0; }
+      .stat { background: var(--surface); border-radius: 30px; padding: 26px 32px; }
+      .stat b { display: block; font-size: 58px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; white-space: nowrap; }
+      .stat b.scores { font-size: 46px; }
+      .stat span { display: block; margin-top: 12px; font-size: 28px; color: var(--muted); font-weight: 600; line-height: 1.25; }
+
+      /* Language diagram */
+      .lang { display: flex; align-items: center; gap: 46px; margin-top: 30px; }
+      .chips { display: flex; flex-direction: column; gap: 22px; }
+      .chip { display: flex; align-items: center; gap: 18px; padding: 16px 30px 16px 16px; border-radius: 26px; background: var(--surface); font-size: 52px; font-weight: 750; }
+      .chip b { font-size: 22px; color: #fff; border-radius: 999px; padding: 6px 12px; font-weight: 800; }
+      .arrow { font-size: 90px; color: var(--brand); font-weight: 800; }
+      .concept { padding: 34px 44px; border-radius: 32px; background: var(--night); color: #fff; font-size: 46px; font-weight: 750; text-align: center; line-height: 1.2; }
+      .concept small { display: block; font-size: 26px; color: rgba(255, 255, 255, 0.65); font-weight: 600; margin-top: 8px; }
+      .stamp { padding: 20px 40px; border-radius: 22px; background: var(--bubble); font-size: 58px; font-weight: 800; transform: rotate(-4deg); }
+
+      /* Architecture diagram */
+      .arch { display: flex; align-items: stretch; gap: 30px; margin-top: 10px; }
+      .box { flex: 1; background: var(--surface); border-radius: 30px; padding: 30px 32px; display: flex; flex-direction: column; gap: 12px; }
+      .box h3 { font-size: 40px; font-weight: 800; }
+      .box p { font-size: 28px; color: var(--muted); line-height: 1.3; font-weight: 550; }
+      .box .tag { align-self: flex-start; font-size: 22px; font-weight: 800; padding: 6px 14px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); }
+      .link { align-self: center; font-size: 60px; color: var(--brand); font-weight: 800; }
+      .note { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 6px; }
+      .note span { font-size: 28px; font-weight: 650; padding: 14px 26px; border-radius: 999px; background: var(--night); color: #fff; }
+
+      /* Title / end */
+      .center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; text-align: center; }
+      .logo { width: 190px; height: 143px; }
+      .brand { font-weight: 800; font-size: 160px; letter-spacing: -0.03em; line-height: 0.9; }
+      .tag { font-weight: 600; font-size: 44px; color: var(--muted); }
+      .url { font-size: 64px; font-weight: 800; color: var(--brand); }
+
+      /* Chapter bar */
+      #chapters { position: absolute; left: 0; right: 0; bottom: 34px; display: flex; justify-content: center; gap: 10px; opacity: 0; }
+      #chapters span { font-size: 22px; font-weight: 700; padding: 8px 18px; border-radius: 999px; background: rgba(21, 19, 64, 0.06); color: var(--muted); }
+      #chapters span.on { background: var(--night); color: #fff; }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <!-- Title -->
+      <section class="layer center" id="s-title">
+        <img class="logo" src="../../public/favicon.svg" alt="" />
+        <h1 class="brand" data-in>Same Pinch</h1>
+        <p class="tag" data-in>What I built, the choices I made, and what I left out.</p>
+      </section>
+
+      <!-- 01 The idea -->
+      <section class="layer" id="s-idea"><div class="slide">
+        <span class="kicker" data-in>01 · The idea</span>
+        <h2 class="title" data-in>Do two strangers notice the same thing?</h2>
+        <div class="points">
+          <p class="point" data-in><i>1</i><span>You see a photo and <b>tap the first thing your eye goes to</b>. Naming it is optional, in any language.</span></p>
+          <p class="point" data-in><i>2</i><span>A real player somewhere in India saw the same photo. <b>Same spot, or the same meaning</b>, is a Same Pinch.</span></p>
+          <p class="point" data-in><i>3</i><span>Every agreement is a <b>human-verified label</b> (the ESP Game idea): real data work, so a verified match can pay.</span></p>
+        </div>
+      </div></section>
+
+      <!-- 02 First minute -->
+      <section class="layer" id="s-welcome">
+        <div class="cap"><span class="kicker" data-in>02 · The first minute</span><h2 class="title" data-in>Play before you sign up.</h2>
+          <p class="sub" data-in>A ten-second story shows the whole idea. Then three practice rounds against recorded players. No form until you've felt the game.</p></div>
+        <div class="phone"><video id="v-welcome" src=".out/clips/welcome.webm" muted preload="auto"></video></div>
+      </section>
+      <section class="layer" id="s-practice">
+        <div class="cap"><span class="kicker" data-in>02 · The first minute</span><h2 class="title" data-in>Practice teaches by doing.</h2>
+          <p class="sub" data-in>Tap, then see their pin and their words, in their language. A one-line coach explains each result.</p></div>
+        <div class="phone"><video id="v-practice" src=".out/clips/practice.webm" muted preload="auto"></video></div>
+      </section>
+
+      <!-- 03 A real round -->
+      <section class="layer" id="s-play">
+        <div class="cap"><span class="kicker" data-in style="background: var(--marigold)">03 · A real round</span><h2 class="title" data-in>The server decides. Then the reveal.</h2>
+          <p class="sub" data-in>Your tap is stored first. Then your partner's pin, a heatmap of everyone's pinches, and a rematch chip if you've met before.</p></div>
+        <div class="phone"><video id="v-play" src=".out/clips/play.webm" muted preload="auto"></video></div>
+      </section>
+
+      <!-- 04 Any language -->
+      <section class="layer" id="s-lang"><div class="slide">
+        <span class="kicker" data-in style="background: var(--bubble)">04 · Any language</span>
+        <h2 class="title" data-in>naayi = कुत्ता = dog</h2>
+        <div class="lang" data-in>
+          <div class="chips">
+            <span class="chip pop"><b style="background: #a77d00">KN</b>ನಾಯಿ</span>
+            <span class="chip pop"><b style="background: #f26b1d">HI</b>कुत्ता</span>
+            <span class="chip pop"><b style="background: var(--brand)">EN</b>dog</span>
+          </div>
+          <span class="arrow">→</span>
+          <div class="concept">one shared concept<small>a lexicon maps each word, script or romanised</small></div>
+          <span class="arrow">→</span>
+          <span class="stamp pop">BHASHA PINCH!</span>
+        </div>
+        <p class="sub" data-in style="font-size: 36px; max-width: 1500px">Matches count across six languages. Low-information words ("nice", "thing") never match, and overused ones get "burnt" so labels stay specific.</p>
+      </div></section>
+
+      <!-- 05 After the pack -->
+      <section class="layer wide" id="s-results">
+        <div class="cap"><span class="kicker" data-in style="background: var(--sky)">05 · After the pack</span><h2 class="title" data-in>Every round, dealt back.</h2>
+          <p class="sub" data-in>Cards flip over in 3D, XP fills, flame and badges pop. Three matches in a row: a hot hand, half the time for double XP.</p></div>
+        <div class="laptop"><div class="screen"><video id="v-results" src=".out/clips/results.webm" muted preload="auto"></video></div><div class="base"></div></div>
+      </section>
+
+      <!-- 06 Fair by design -->
+      <section class="layer" id="s-fair"><div class="slide">
+        <span class="kicker" data-in>06 · Fair by design</span>
+        <h2 class="title" data-in>Paid for the work. Never for luck.</h2>
+        <div class="points">
+          <p class="point" data-in><i>₹</i><span>Money only for <b>verified matches</b>, scaled by answer quality on hidden test photos.</span></p>
+          <p class="point" data-in><i>★</i><span>Streaks, levels, the weekly board and the hot hand give <b>XP and badges, never money</b>. India's 2025 Online Gaming Act bans money games.</span></p>
+          <p class="point" data-in><i>✓</i><span><b>No deposits. Earned money never goes down.</b> This build pays demo money.</span></p>
+        </div>
+      </div></section>
+      <section class="layer wide" id="s-wallet">
+        <div class="cap"><span class="kicker" data-in>06 · Fair by design</span><h2 class="title" data-in>A ledger you can trust.</h2>
+          <p class="sub" data-in>Append-only, kept in paise, written only by the server. Payouts are simulated until KYC and a payout partner exist.</p></div>
+        <div class="laptop"><div class="screen"><video id="v-wallet" src=".out/clips/wallet.webm" muted preload="auto"></video></div><div class="base"></div></div>
+      </section>
+
+      <!-- 07 Every day -->
+      <section class="layer wide" id="s-daily">
+        <div class="cap"><span class="kicker" data-in style="background: var(--marigold)">07 · Every day</span><h2 class="title" data-in>Think Like India.</h2>
+          <p class="sub" data-in>Five prompts, one word each, graded against what everyone said. A shareable grid. XP only.</p></div>
+        <div class="laptop"><div class="screen"><video id="v-daily" src=".out/clips/daily.webm" muted preload="auto"></video></div><div class="base"></div></div>
+      </section>
+
+      <!-- 08 Built for phones -->
+      <section class="layer" id="s-offline">
+        <div class="cap"><span class="kicker" data-in>08 · Built for Indian phones</span><h2 class="title" data-in>Plays on a patchy network.</h2>
+          <p class="sub" data-in>Packs download ahead. Offline, your answer is saved and queued, and the reveal waits for the network. You keep playing.</p></div>
+        <div class="phone"><video id="v-offline" src=".out/clips/offline.webm" muted preload="auto"></video></div>
+      </section>
+      <section class="layer" id="s-perf"><div class="slide" style="gap: 32px; padding-top: 100px">
+        <span class="kicker" data-in>08 · Built for Indian phones</span>
+        <h2 class="title" data-in>Light and fast. Measured, not promised.</h2>
+        <div class="stats">
+          <div class="stat pop" data-in><b>143.8 KB</b><span>JavaScript before first paint (budget 150, enforced in CI)</span></div>
+          <div class="stat pop" data-in><b>≈ 200 KB</b><span>per 5-photo pack, stored for offline play</span></div>
+          <div class="stat pop" data-in><b>4 + 2</b><span>UI languages + word languages: English, हिन्दी, ಕನ್ನಡ, தமிழ், plus Telugu and Marathi words</span></div>
+          <div class="stat pop" data-in><b class="scores">100 · 100 · 100 · 100</b><span>Lighthouse desktop: performance, accessibility, best practices, SEO</span></div>
+          <div class="stat pop" data-in><b class="scores">93 · 100 · 100 · 100</b><span>Lighthouse mobile (simulated slow 4G)</span></div>
+          <div class="stat pop" data-in><b>0</b><span>layout shift (CLS) on the landing page</span></div>
+        </div>
+      </div></section>
+
+      <!-- 09 Every screen -->
+      <section class="layer wide" id="s-desktop">
+        <div class="cap"><span class="kicker" data-in style="background: var(--sky)">09 · Every screen</span><h2 class="title" data-in>Three layouts, not one stretched.</h2>
+          <p class="sub" data-in>Phone, tablet and desktop each get their own layout. On desktop, a curved rail slides to the page you open.</p></div>
+        <div class="laptop"><div class="screen"><video id="v-desktop" src=".out/clips/desktop.webm" muted preload="auto"></video></div><div class="base"></div></div>
+      </section>
+
+      <!-- 10 Under the hood -->
+      <section class="layer" id="s-arch"><div class="slide">
+        <span class="kicker" data-in>10 · Under the hood</span>
+        <h2 class="title" data-in>The phone never decides a match.</h2>
+        <div class="arch" data-in>
+          <div class="box pop"><span class="tag">WEB APP · PWA</span><h3>React 19 + Vite</h3><p>Tailwind with one theme file, Motion, an IndexedDB queue for offline answers.</p></div>
+          <span class="link">⇄</span>
+          <div class="box pop"><span class="tag">API · VERCEL, SINGAPORE</span><h3>Express 5</h3><p>Routes → services → Drizzle. Scores each round inside one database transaction.</p></div>
+          <span class="link">⇄</span>
+          <div class="box pop"><span class="tag">DATA · NEON, SINGAPORE</span><h3>PostgreSQL</h3><p>Append-only ledger in paise. Recorded answers become future partners.</p></div>
+        </div>
+        <div class="note" data-in>
+          <span>Partner answers never reach the phone before yours is stored</span>
+          <span>zod contracts shared by both sides</span>
+          <span>145 automated tests · CI on every push</span>
+        </div>
+      </div></section>
+
+      <!-- 11 Choices -->
+      <section class="layer" id="s-choices"><div class="slide">
+        <span class="kicker" data-in>11 · Choices</span>
+        <h2 class="title" data-in>Trade-offs I made on purpose.</h2>
+        <div class="cards">
+          <div class="card pop" data-in><h3>Recorded partners, not live matchmaking</h3><p>No waiting room, it works offline, and every answer becomes a future partner.</p></div>
+          <div class="card pop" data-in><h3>Express + Postgres, not Firebase</h3><p>Money needs real transactions and an append-only ledger.</p></div>
+          <div class="card pop" data-in><h3>Tap first, words optional</h3><p>One thumb, a minute a pack, and it works whatever language you think in.</p></div>
+          <div class="card pop" data-in><h3>CSS 3D + Motion, not three.js</h3><p>three.js alone would use the whole 150 KB JavaScript budget.</p></div>
+        </div>
+      </div></section>
+
+      <!-- 12 Left out -->
+      <section class="layer" id="s-out"><div class="slide">
+        <span class="kicker" data-in style="background: var(--marigold)">12 · Left out, on purpose</span>
+        <h2 class="title" data-in>What isn't built yet.</h2>
+        <div class="points">
+          <p class="point" data-in><i>–</i><span><b>Sound prompts and voice input</b>: designed in the docs, not built.</span></p>
+          <p class="point" data-in><i>–</i><span><b>Real UPI payouts</b>: they need KYC and a payout partner. The ledger and payout flow run in demo mode.</span></p>
+          <p class="point" data-in><i>–</i><span><b>Live two-player rounds</b> and an <b>admin tool</b> to review new word matches.</span></p>
+          <p class="point" data-in><i>–</i><span><b>Browser end-to-end tests and Lighthouse in CI</b>: today CI runs unit and API tests plus the bundle budget.</span></p>
+        </div>
+      </div></section>
+
+      <!-- End -->
+      <section class="layer center" id="s-end">
+        <img class="logo" src="../../public/favicon.svg" alt="" />
+        <h1 class="brand" data-in>Try it on your phone</h1>
+        <p class="url" data-in>samepinch.vercel.app</p>
+        <p class="tag" data-in>Returning player? "I already play" · restore code SAME7777 · the README covers setup</p>
+      </section>
+
+      <div id="chapters">
+        <span>Idea</span><span>First minute</span><span>A round</span><span>Language</span><span>Rewards</span><span>Fairness</span><span>Daily</span><span>Phones</span><span>Screens</span><span>Under the hood</span><span>Choices</span><span>Left out</span>
+      </div>
+    </div>
+
+    <script>
+      // [section id, seconds (or clip), video id, clip start offset, chapter index]
+      const PLAN = [
+        ["s-title", 4, null, 0, -1],
+        ["s-idea", 12, null, 0, 0],
+        ["s-welcome", 7.5, "v-welcome", 0, 1],
+        ["s-practice", 11, "v-practice", 1.2, 1],
+        ["s-play", "clip", "v-play", 0, 2],
+        ["s-lang", 10, null, 0, 3],
+        ["s-results", "clip", "v-results", 0, 4],
+        ["s-fair", 12, null, 0, 5],
+        ["s-wallet", "clip", "v-wallet", 0, 5],
+        ["s-daily", "clip", "v-daily", 0, 6],
+        ["s-offline", "clip", "v-offline", 0, 7],
+        ["s-perf", 10.5, null, 0, 7],
+        ["s-desktop", "clip", "v-desktop", 0, 8],
+        ["s-arch", 13, null, 0, 9],
+        ["s-choices", 12.5, null, 0, 10],
+        ["s-out", 12, null, 0, 11],
+        ["s-end", 6.5, null, 0, -1],
+      ];
+      const FADE = 0.45;
+      const segs = [];
+      window.segs = segs;
+      const $ = (id) => document.getElementById(id);
+      const ease = (x) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+      const back = (x) => {
+        x = Math.min(1, Math.max(0, x));
+        const c = 1.6;
+        return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2);
+      };
+
+      window.setup = async () => {
+        await document.fonts.ready;
+        let cursor = 0;
+        for (const [id, dur, video, offset, chapter] of PLAN) {
+          let d = dur;
+          if (video) {
+            const v = $(video);
+            if (v.readyState < 1) await new Promise((r) => v.addEventListener("loadedmetadata", r, { once: true }));
+            if (dur === "clip") d = v.duration - offset;
+          }
+          segs.push({ id, start: cursor, end: cursor + d, video, offset, chapter });
+          cursor += d;
+        }
+        return cursor;
+      };
+
+      const seek = (v, time) =>
+        new Promise((resolve) => {
+          const target = Math.min(Math.max(0, time), v.duration - 0.001);
+          if (Math.abs(v.currentTime - target) < 0.0005 && v.readyState >= 2) return resolve();
+          v.addEventListener("seeked", () => resolve(), { once: true });
+          v.currentTime = target;
+        });
+
+      window.render = async (t) => {
+        const waits = [];
+        let chapter = -1;
+        for (const s of segs) {
+          const el = $(s.id);
+          const local = t - s.start;
+          if (!(t >= s.start - 0.001 && t < s.end + FADE)) {
+            el.style.opacity = 0;
+            continue;
+          }
+          if (t < s.end) chapter = s.chapter;
+          const fadeIn = s.start === 0 ? 1 : ease(local / FADE);
+          el.style.opacity = Math.min(fadeIn, 1 - ease((t - s.end) / FADE));
+          // Everything marked data-in arrives in reading order, ~0.45 s apart.
+          el.querySelectorAll("[data-in]").forEach((n, i) => {
+            const p = ease((local - 0.2 - i * 0.45) / 0.6);
+            n.style.opacity = p;
+            n.style.translate = `0 ${(1 - p) * 34}px`;
+          });
+          const dev = el.querySelector(".phone, .laptop");
+          if (dev) dev.style.translate = `${(1 - back((local - 0.05) / 0.8)) * 240}px 0`;
+          if (s.video) waits.push(seek($(s.video), s.offset + local));
+        }
+        // Chapter bar: hidden on the title and end cards.
+        const bar = $("chapters");
+        bar.style.opacity = chapter >= 0 ? 1 : 0;
+        bar.querySelectorAll("span").forEach((n, i) => n.classList.toggle("on", i === chapter));
+        await Promise.all(waits);
+      };
+    </script>
+  </body>

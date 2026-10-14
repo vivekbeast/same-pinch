@@ -2,13 +2,13 @@
 // Needs the app running locally (`npm run dev`, demo data seeded). Uses Chrome's screencast, so frames are
 // crisp and keep their real timing; each scene becomes a VP9 clip in scripts/promo/.out/clips/.
 //
-//   node scripts/promo/capture.mjs [baseUrl]
+//   node scripts/promo/capture.mjs [baseUrl] [--scenes welcome,play,results,desktop,practice,offline,daily,wallet]
 import { execFileSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "@playwright/test";
 
-const BASE = process.argv[2] ?? "http://localhost:5173";
+const BASE = process.argv[2]?.startsWith("http") ? process.argv[2] : "http://localhost:5173";
 const OUT = join(import.meta.dirname, ".out", "clips");
 const H = { "content-type": "application/json", "X-SP-Client": "web" };
 mkdirSync(OUT, { recursive: true });
@@ -26,7 +26,12 @@ async function record(page, name, run) {
   });
   const vp = page.viewportSize();
   const dpr = await page.evaluate(() => window.devicePixelRatio);
-  await cdp.send("Page.startScreencast", { format: "jpeg", quality: 92, maxWidth: vp.width * dpr, maxHeight: vp.height * dpr });
+  await cdp.send("Page.startScreencast", {
+    format: "jpeg",
+    quality: 92,
+    maxWidth: vp.width * dpr,
+    maxHeight: vp.height * dpr,
+  });
   await run();
   const end = Date.now() / 1000;
   await cdp.send("Page.stopScreencast");
@@ -45,9 +50,32 @@ async function record(page, name, run) {
   list += `file f${String(frames.length - 1).padStart(5, "0")}.jpg\n`; // concat demuxer quirk: repeat the last
   writeFileSync(join(dir, "list.txt"), list);
   // Even dimensions for the encoder; constant 30 fps so the compositor can seek frame-exactly.
-  execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"),
-    "-vf", "fps=30,scale=trunc(iw/2)*2:trunc(ih/2)*2", "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "24",
-    "-row-mt", "1", "-deadline", "good", "-cpu-used", "4", join(OUT, `${name}.webm`)]);
+  execFileSync("ffmpeg", [
+    "-y",
+    "-loglevel",
+    "error",
+    "-f",
+    "concat",
+    "-safe",
+    "0",
+    "-i",
+    join(dir, "list.txt"),
+    "-vf",
+    "fps=30,scale=trunc(iw/2)*2:trunc(ih/2)*2",
+    "-c:v",
+    "libvpx-vp9",
+    "-b:v",
+    "0",
+    "-crf",
+    "24",
+    "-row-mt",
+    "1",
+    "-deadline",
+    "good",
+    "-cpu-used",
+    "4",
+    join(OUT, `${name}.webm`),
+  ]);
   rmSync(dir, { recursive: true, force: true });
   console.log(`  ${name}: ${frames.length} frames → clips/${name}.webm`);
 }
@@ -60,12 +88,19 @@ async function signIn(page) {
   }, H);
 }
 
-const newPack = (page) => page.evaluate(async (H) => (await fetch("/api/v1/packs", { method: "POST", headers: H, body: "{}" })).json(), H);
+const newPack = (page) =>
+  page.evaluate(
+    async (H) => (await fetch("/api/v1/packs", { method: "POST", headers: H, body: "{}" })).json(),
+    H,
+  );
 
 /** Answer the round on screen: tap the photo, or type a word. */
 async function answer(page, word, at = 0.45) {
   // Wait for the round to render: a photo to pinch, or a word box.
-  await page.locator('[role="application"], input[type="text"], input:not([type])').first().waitFor({ timeout: 10000 });
+  await page
+    .locator('[role="application"], input[type="text"], input:not([type])')
+    .first()
+    .waitFor({ timeout: 10000 });
   const board = page.locator('[role="application"]');
   if (await board.count()) {
     const box = await board.boundingBox();
@@ -83,82 +118,171 @@ async function answer(page, word, at = 0.45) {
 }
 
 const browser = await chromium.launch();
-console.log("Recording scenes:");
+const scenes = {
+  welcome: async () => {
+    // 1 · The welcome story, phone.
 
-// 1 · The welcome story, phone.
-{
-  const ctx = await browser.newContext(PHONE);
-  const page = await ctx.newPage();
-  await page.goto(`${BASE}/welcome`);
-  await page.getByRole("heading", { level: 2 }).first().waitFor();
-  await record(page, "welcome", () => page.waitForTimeout(10500));
-  await ctx.close();
-}
+    const ctx = await browser.newContext(PHONE);
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/welcome`);
+    await page.getByRole("heading", { level: 2 }).first().waitFor();
+    await record(page, "welcome", () => page.waitForTimeout(10500));
+    await ctx.close();
+  },
+  play: async () => {
+    // 2 · Playing: tap the photo, the reveal, the crowd heatmap. Phone.
 
-// 2 · Playing: tap the photo, the reveal, the crowd heatmap. Phone.
-{
-  const ctx = await browser.newContext(PHONE);
-  const page = await ctx.newPage();
-  await signIn(page);
-  const pack = await newPack(page);
-  await page.goto(`${BASE}/play/${pack.packId}`);
-  await page.waitForTimeout(1500);
-  await record(page, "play", async () => {
-    await page.waitForTimeout(1200);
-    await answer(page, "chai", 0.42);
-    await page.waitForTimeout(4200);
-    await page.getByRole("button", { name: /Next/ }).click();
-    await page.waitForTimeout(1300);
-    await answer(page, "sunrise", 0.5);
-    await page.waitForTimeout(4200);
-  });
-  await ctx.close();
-}
+    const ctx = await browser.newContext(PHONE);
+    const page = await ctx.newPage();
+    await signIn(page);
+    const pack = await newPack(page);
+    await page.goto(`${BASE}/play/${pack.packId}`);
+    await page.waitForTimeout(1500);
+    await record(page, "play", async () => {
+      await page.waitForTimeout(1200);
+      await answer(page, "chai", 0.42);
+      await page.waitForTimeout(4200);
+      await page.getByRole("button", { name: /Next/ }).click();
+      await page.waitForTimeout(1300);
+      await answer(page, "sunrise", 0.5);
+      await page.waitForTimeout(4200);
+    });
+    await ctx.close();
+  },
+  results: async () => {
+    // 3 · Results: the rounds dealt back as 3D cards, then Save → XP bar + rewards. Desktop.
 
-// 3 · Results: the rounds dealt back as 3D cards, then Save → XP bar + rewards. Desktop.
-{
-  const ctx = await browser.newContext(DESKTOP);
-  const page = await ctx.newPage();
-  await signIn(page);
-  const pack = await newPack(page);
-  await page.goto(`${BASE}/play/${pack.packId}`);
-  // Play until the last round (the server may hand back a pack that's already part-played).
-  const words = ["chai", "rain", "dog", "kite", "road"];
-  for (let i = 0; ; i++) {
-    await page.waitForTimeout(500);
-    await answer(page, words[i % words.length]);
-    await page.waitForTimeout(700);
-    if (await page.getByRole("button", { name: /See results/ }).count()) break;
-    await page.getByRole("button", { name: /Next/ }).click();
-  }
-  await record(page, "results", async () => {
-    await page.getByRole("button", { name: /See results/ }).click();
-    await page.waitForURL(/\/done$/);
-    await page.waitForTimeout(3600);
-    await page.getByRole("button", { name: /Save this moment/ }).click();
-    await page.waitForTimeout(3200);
-  });
-  await ctx.close();
-}
-
-// 4 · Desktop: the curved rail sliding between tabs.
-{
-  const ctx = await browser.newContext(DESKTOP);
-  const page = await ctx.newPage();
-  await signIn(page);
-  await page.goto(`${BASE}/`);
-  await page.waitForTimeout(2000);
-  await record(page, "desktop", async () => {
-    await page.waitForTimeout(1400);
-    for (const label of ["Daily", "People", "Me"]) {
-      await page.locator("nav[aria-label] a", { hasText: label }).first().click();
-      await page.waitForTimeout(2100);
+    const ctx = await browser.newContext(DESKTOP);
+    const page = await ctx.newPage();
+    await signIn(page);
+    const pack = await newPack(page);
+    await page.goto(`${BASE}/play/${pack.packId}`);
+    // Play until the last round (the server may hand back a pack that's already part-played).
+    const words = ["chai", "rain", "dog", "kite", "road"];
+    for (let i = 0; ; i++) {
+      await page.waitForTimeout(500);
+      await answer(page, words[i % words.length]);
+      await page.waitForTimeout(700);
+      if (await page.getByRole("button", { name: /See results/ }).count()) break;
+      await page.getByRole("button", { name: /Next/ }).click();
     }
-    await page.locator("nav[aria-label] a", { hasText: "Home" }).first().click();
-    await page.waitForTimeout(1600);
-  });
-  await ctx.close();
-}
+    await record(page, "results", async () => {
+      await page.getByRole("button", { name: /See results/ }).click();
+      await page.waitForURL(/\/done$/);
+      await page.waitForTimeout(3600);
+      await page.getByRole("button", { name: /Save this moment/ }).click();
+      await page.waitForTimeout(3200);
+    });
+    await ctx.close();
+  },
+  desktop: async () => {
+    // 4 · Desktop: the curved rail sliding between tabs.
 
+    const ctx = await browser.newContext(DESKTOP);
+    const page = await ctx.newPage();
+    await signIn(page);
+    await page.goto(`${BASE}/`);
+    await page.waitForTimeout(2000);
+    await record(page, "desktop", async () => {
+      await page.waitForTimeout(1400);
+      for (const label of ["Daily", "People", "Me"]) {
+        await page.locator("nav[aria-label] a", { hasText: label }).first().click();
+        await page.waitForTimeout(2100);
+      }
+      await page.locator("nav[aria-label] a", { hasText: "Home" }).first().click();
+      await page.waitForTimeout(1600);
+    });
+    await ctx.close();
+  },
+  practice: async () => {
+    // 5 · First run: the welcome's "Let's play" → practice against recorded partners. Phone.
+    const ctx = await browser.newContext(PHONE);
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/welcome`);
+    await page
+      .getByRole("button", { name: /Let's play/ })
+      .first()
+      .click();
+    await page.locator('[role="application"]').first().waitFor();
+    await record(page, "practice", async () => {
+      await page.waitForTimeout(1800);
+      for (let i = 0; i < 2; i++) {
+        const board = page.locator('[role="application"]').first();
+        const bx = await board.boundingBox();
+        await page.mouse.click(Math.min(bx.x + bx.width / 2, 350), bx.y + bx.height * 0.45);
+        await page.waitForTimeout(3600);
+        const next = page.getByRole("button", { name: /^Next|Lock it in|Continue/ }).first();
+        if (i === 0 && (await next.count())) await next.click();
+        await page.waitForTimeout(1500);
+      }
+    });
+    await ctx.close();
+  },
+  offline: async () => {
+    // 6 · Offline: answers seal and queue; play goes on. Phone.
+    const ctx = await browser.newContext(PHONE);
+    const page = await ctx.newPage();
+    await signIn(page);
+    const pack = await newPack(page);
+    await page.goto(`${BASE}/play/${pack.packId}`);
+    await page.locator('[role="application"], input').first().waitFor();
+    await page.waitForTimeout(1200);
+    await ctx.setOffline(true);
+    await record(page, "offline", async () => {
+      // One round: the dev server has no service worker, so only the photo already on screen is cached.
+      await page.waitForTimeout(1200);
+      await answer(page, "chai", 0.45);
+      await page.waitForTimeout(3800);
+    });
+    await ctx.setOffline(false);
+    await ctx.close();
+  },
+  daily: async () => {
+    // 7 · Think Like India: one word, graded against everyone's answers. Desktop.
+    const ctx = await browser.newContext(DESKTOP);
+    const page = await ctx.newPage();
+    await signIn(page);
+    await page.goto(`${BASE}/daily`);
+    await page.getByRole("textbox").first().waitFor();
+    await page.waitForTimeout(1200);
+    await record(page, "daily", async () => {
+      await page.waitForTimeout(900);
+      const input = page.getByRole("textbox").first();
+      await input.pressSequentially("candle", { delay: 110 });
+      await page.waitForTimeout(500);
+      await page.getByRole("button", { name: /Lock it in/ }).click();
+      await page.waitForTimeout(3200);
+    });
+    await ctx.close();
+  },
+  wallet: async () => {
+    // 8 · Me → Wallet: earnings ledger, demo money. Desktop.
+    const ctx = await browser.newContext(DESKTOP);
+    const page = await ctx.newPage();
+    await signIn(page);
+    await page.goto(`${BASE}/me`);
+    await page.waitForTimeout(2200);
+    await record(page, "wallet", async () => {
+      await page.waitForTimeout(1500);
+      await page
+        .getByRole("link", { name: /Wallet/ })
+        .first()
+        .click();
+      await page.waitForTimeout(2600);
+      await page.mouse.wheel(0, 500);
+      await page.waitForTimeout(1800);
+    });
+    await ctx.close();
+  },
+};
+
+// --scenes a,b picks scenes; default: the four the promo film uses.
+const pick = process.argv.indexOf("--scenes");
+const names = pick > -1 ? process.argv[pick + 1].split(",") : ["welcome", "play", "results", "desktop"];
+console.log("Recording scenes:");
+for (const name of names) {
+  if (!scenes[name]) throw new Error(`Unknown scene "${name}". Known: ${Object.keys(scenes).join(", ")}`);
+  await scenes[name]();
+}
 await browser.close();
 console.log("Done.");
