@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate, redirect, useSearchParams } from "react-
 import { isOnboarded, markOnboarded } from "@/lib/session";
 import AppShell from "./AppShell";
 import { RouteError } from "./RouteError";
+import { screens } from "./screens";
 
 /**
  * Decides before anything renders: a first-time visitor goes straight to the practice game, so the
@@ -28,10 +29,10 @@ const page = (load: () => Promise<{ default: React.ComponentType }>) => async ()
 
 export const router = createBrowserRouter([
   // Public: readable before signing up (D45).
-  { path: "/terms", lazy: page(() => import("@/features/system/Terms")), errorElement: <RouteError /> },
+  { path: "/terms", lazy: page(screens.terms), errorElement: <RouteError /> },
   {
     path: "/welcome",
-    lazy: page(() => import("@/features/onboarding/Welcome")),
+    lazy: page(screens.welcome),
     errorElement: <RouteError />,
   },
   {
@@ -39,14 +40,14 @@ export const router = createBrowserRouter([
     loader: firstRunGate,
     errorElement: <RouteError />,
     children: [
-      { index: true, lazy: page(() => import("@/features/today/Today")) },
-      { path: "daily", lazy: page(() => import("@/features/daily/Daily")) },
-      { path: "people", lazy: page(() => import("@/features/pals/Pals")) },
-      { path: "me", lazy: page(() => import("@/features/profile/Profile")) },
-      { path: "me/wallet", lazy: page(() => import("@/features/wallet/Wallet")) },
-      { path: "me/badges", lazy: page(() => import("@/features/profile/BadgesPage")) },
-      { path: "me/map", lazy: page(() => import("@/features/map/MapPage")) },
-      { path: "me/settings", lazy: page(() => import("@/features/settings/Settings")) },
+      { index: true, lazy: page(screens.today) },
+      { path: "daily", lazy: page(screens.daily) },
+      { path: "people", lazy: page(screens.people) },
+      { path: "me", lazy: page(screens.me) },
+      { path: "me/wallet", lazy: page(screens.wallet) },
+      { path: "me/badges", lazy: page(screens.badges) },
+      { path: "me/map", lazy: page(screens.map) },
+      { path: "me/settings", lazy: page(screens.settings) },
       // Older paths keep working (bookmarks, the Google return-to): v1 tabs and the v2 Rewards tab (D41).
       { path: "rewards", element: <RewardsRedirect /> },
       { path: "wallet", element: <Navigate to="/me/wallet" replace /> },
@@ -55,11 +56,11 @@ export const router = createBrowserRouter([
       { path: "settings", element: <Navigate to="/me/settings" replace /> },
     ],
   },
-  { path: "/play/:packId", lazy: page(() => import("@/features/play/Play")), errorElement: <RouteError /> },
+  { path: "/play/:packId", lazy: page(screens.play), errorElement: <RouteError /> },
   {
     path: "/play/:packId/done",
-    lazy: page(() => import("@/features/results/Results")),
+    lazy: page(screens.results),
     errorElement: <RouteError />,
   },
-  { path: "*", lazy: page(() => import("@/features/system/NotFound")) },
+  { path: "*", lazy: page(screens.notFound) },
 ]);

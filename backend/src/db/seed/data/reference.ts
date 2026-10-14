@@ -18,6 +18,7 @@ export const BADGES: { id: BadgeId; sort: number; rule: Record<string, unknown> 
   { id: "bharat_synced", sort: 10, rule: { type: "regions", count: 36 } },
   { id: "india_brain", sort: 11, rule: { type: "daily_perfect" } },
   { id: "sharp_eye", sort: 12, rule: { type: "gold_streak", count: 20 } },
+  { id: "brain_twin", sort: 13, rule: { type: "twin", count: 3 } },
 ];
 
 /**

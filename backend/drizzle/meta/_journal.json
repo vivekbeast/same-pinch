@@ -50,6 +50,13 @@
       "when": 1791924121384,
       "tag": "0006_pinch_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791958650261,
+      "tag": "0007_hot_hand_and_brain_twin",
+      "breakpoints": true
     }
   ]
 }

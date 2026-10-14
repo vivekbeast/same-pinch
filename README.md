@@ -1,84 +1,137 @@
 # Same Pinch 🤏
 
-> **Think alike. Any language. Get paid for every match.**
-> The childhood game, rebuilt so strangers across India discover they think alike — while earning for every verified match.
+> **Think alike. In any language.** Two strangers see the same photo. Tap the same spot, or say the same thing
+> (*naayi* = *kutta* = *dog*), and it's a **SAME PINCH!**
 
-Same Pinch is a responsive, offline-capable web app (PWA). Two people see the same image, sound or question and each drop up to three words. If any word matches — even across languages ("naayi" = "kutta" = "dog") — both shout **SAME PINCH!** and earn.
+[![Watch the 48-second promo](docs/media/promo-poster.jpg)](docs/media/same-pinch-promo.mp4)
 
-Every verified pinch is a human-agreed label (the ESP Game principle, 2003): real value for an AI-data business, real income for the player.
+**▶ [Watch the promo video (MP4, 48 s, 1080p)](docs/media/same-pinch-promo.mp4)**
 
-**Stack:** React 19 + Vite + Tailwind v4 (one theme file) · Node.js + Express 5 · PostgreSQL (Neon) · hosted free on Vercel. The brief didn't mandate any technology; reasons are in `docs/TECH_STACK.md`.
+<p align="center"><img src="docs/media/promo-preview.gif" alt="Tapping a photo, then the reveal: your partner's pinch, a crowd heatmap and '40% pinched here too'" width="720" /></p>
 
----
-
-## Doc index
-
-| # | File | What's inside |
-|---|---|---|
-| 0 | [`AGENTS.md`](./AGENTS.md) | Rules for contributors and AI coding agents. Read first. |
-| 1 | [`docs/PRODUCT.md`](./docs/PRODUCT.md) | PRD: users, constraints, research, scope, metrics |
-| 2 | [`docs/GAME_DESIGN.md`](./docs/GAME_DESIGN.md) | Every mechanic, formula, level, badge, streak rule, legal rule |
-| 3 | [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md) | Reference analysis, researched palette, type, **the single `theme.css`** |
-| 4 | [`docs/RESPONSIVE.md`](./docs/RESPONSIVE.md) | Breakpoint rules, separate phone/tablet/desktop layouts, free testing tools |
-| 5 | [`docs/UX_STATES.md`](./docs/UX_STATES.md) | Say-less copy, anti-"AI slop" rules, loading/skeletons/spinners, fallbacks, 404 |
-| 6 | [`docs/SCREENS.md`](./docs/SCREENS.md) | Every screen end to end (phone wireframes) |
-| 7 | [`docs/COMPONENTS.md`](./docs/COMPONENTS.md) | Component inventory + Tailwind rebuilds of shadcn/Radix |
-| 8 | [`docs/MOTION.md`](./docs/MOTION.md) | Animation + haptics spec (Motion) |
-| 9 | [`docs/TECH_STACK.md`](./docs/TECH_STACK.md) | Library choices and rejections, bundle budget |
-| 10 | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | Whole system, web app structure, offline, routing |
-| 11 | [`docs/BACKEND.md`](./docs/BACKEND.md) | Express architecture: pipeline, auth, scoring, jobs, rate limits |
-| 12 | [`docs/API.md`](./docs/API.md) | REST endpoint contracts |
-| 13 | [`docs/DATA_MODEL.md`](./docs/DATA_MODEL.md) | PostgreSQL schema (Drizzle), access rules, seed |
-| 14 | [`docs/FREE_STACK.md`](./docs/FREE_STACK.md) | ₹0 services, limits, one-hour setup |
-| 15 | [`docs/CONTENT_I18N.md`](./docs/CONTENT_I18N.md) | Prompts, lexicon, languages, copy |
-| 16 | [`docs/PERFORMANCE.md`](./docs/PERFORMANCE.md) | Lighthouse ≥ 95 everywhere: budgets, techniques, CI |
-| 17 | [`docs/ACCESSIBILITY.md`](./docs/ACCESSIBILITY.md) | A11y checklist |
-| 18 | [`docs/SECURITY.md`](./docs/SECURITY.md) | Threat model, anti-cheat, headers, privacy |
-| 19 | [`docs/TESTING.md`](./docs/TESTING.md) | Unit, API, e2e, responsive, Lighthouse |
-| 20 | [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) | Vercel + Neon setup, CI/CD, go-live checklist |
-| 21 | [`docs/ROADMAP.md`](./docs/ROADMAP.md) | Submission email draft |
-| 22 | [`docs/DECISIONS.md`](./docs/DECISIONS.md) | Settled conflicts between docs (wins over others) |
-| 23 | [`docs/UI_DIRECTION.md`](./docs/UI_DIRECTION.md) | The upgraded creative direction: plates, stamps, Plate Map |
+Same Pinch is a responsive, offline-first web game (PWA) for India. Every round, you and a real person somewhere
+in the country look at the same picture. You tap the first thing you notice, and can name it in your own
+language. When your answers agree, that agreement is a **verified human label**, real data work (the ESP Game
+principle), so verified matches earn a little money. Competition only ever earns XP, badges and bragging
+rights.
 
 ---
 
-## Quickstart (local)
+## How a round works
 
-Needs Node 22+ and Docker.
+1. **Notice.** A photo fills the screen. Tap the first thing your eye goes to.
+2. **Name it (optional).** Up to three words. Smart Chips finish the word you're typing, in *your* language.
+3. **Lock in.** Your answer is stored on the server *before* anything about your partner reaches your phone.
+4. **Discover.** Their pinch pops in: a glow if you chose the same spot, a dashed thread if not. Then a
+   **crowd heatmap** shows where everyone else looked ("41% pinched here too").
+5. **Connect.** Their words appear in their language. Same meaning across languages is a **Bhasha Pinch**.
 
-```bash
-npm run setup                               # installs root, shared/, backend/, frontend/ separately
-cp backend/.env.example backend/.env        # then generate the three secrets (openssl rand -base64 48)
-npm run db:up                               # Postgres 16 on localhost:5433
-npm run db:migrate --prefix backend && npm run db:seed --prefix backend
-npm run dev                                 # api :3000 + web :5173 (web proxies /api)
+A pack is 5 rounds, about a minute. At the end the rounds are dealt back as cards that flip over in 3D, XP
+fills up, and flame, badges and newly synced states pop one by one.
+
+## What's in it
+
+| | |
+|---|---|
+| **The game** | Pinch the Picture, word matching across 6 languages, burnt words, a hidden-quality check, recorded partners (so it plays offline), crowd heatmaps, rematches with people you've matched before |
+| **Keep coming back** | Flame streak with freezes, 5 levels, 13 badges (including *Brain Twin*: 3 matches with one person in a week), the Think Like India daily challenge, a Sync Map of all 36 states and UTs, a weekly XP board |
+| **Hot hand** | Three pinches in a row put the next round on half time for double XP |
+| **People** | The people you've matched with, and one-tap preset notes (no free-text chat between strangers) |
+| **Money, done right** | ₹ only for verified matches, with a pay multiplier for answer quality. **Never** for winning, streaks or luck (India's Online Gaming Act, 2025). No deposits. Earned money never goes down |
+| **Every screen** | Separate phone, tablet and desktop layouts: one-thumb play on phones, a curved animated rail on desktop |
+| **Languages** | UI in English, हिन्दी, ಕನ್ನಡ, தமிழ். Words in those plus తెలుగు and मराठी, typed in script or romanised |
+
+## Built with
+
+| Layer | Choice |
+|---|---|
+| Web app | React 19 · Vite · Tailwind CSS v4 (one `theme.css` for every token) · Motion · TanStack Query · Dexie (offline queue) · PWA |
+| API | Node.js · Express 5 · zod contracts shared with the web app · Drizzle ORM |
+| Data | PostgreSQL (Neon in production, Docker locally) |
+| Hosting | Vercel (web + API), free tier. See [`docs/FREE_STACK.md`](./docs/FREE_STACK.md) |
+
+Performance is a feature: Lighthouse ≥ 95 on mobile and desktop, at most 150 KB of JavaScript before first paint
+(currently 143.7 KB gzip), and transform/opacity-only animation with reduced-motion fallbacks.
+
+## Repository layout
+
+```
+frontend/   React web app (features/<screen>, components/, styles/theme.css, locales/)
+backend/    Express API (routes → services → Drizzle), migrations in backend/drizzle/
+shared/     zod schemas, constants and text helpers used by both
+content/    prompt photo credits
+docs/       product, design, architecture and decision records (index below)
 ```
 
-| Command | What |
+The three packages are independent: each has its own `package.json` and lockfile.
+
+## Run it locally
+
+Needs **Node 22+** and **Docker**.
+
+```bash
+npm run setup                              # installs root, shared/, backend/, frontend/
+cp backend/.env.example backend/.env       # then fill the three secrets: openssl rand -base64 48
+npm run db:up                              # Postgres 16 on localhost:5433
+npm run db:migrate --prefix backend && npm run db:seed --prefix backend
+npm run dev                                # API on :3000, web on :5173 (the web proxies /api)
+```
+
+Open http://localhost:5173. The first visit plays the welcome story and a practice round. To jump straight in
+with history, choose **"I already play"** and use the demo restore code **`SAME7777`**.
+
+Google sign-in is optional: set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `GOOGLE_REDIRECT_URI` in
+`backend/.env` (JavaScript origin `http://localhost:5173`, redirect `http://localhost:3000/api/auth/google/callback`).
+
+### Commands
+
+| Command | What it does |
 |---|---|
 | `npm run dev` | API + web with hot reload |
-| `npm run build` | Build backend (tsup, bundles shared) and frontend (Vite + PWA) |
-| `npm run typecheck` / `npm run lint` / `npm test` | Quality gates |
-| `npm run size --prefix frontend` | First-paint budget gate (JS ≤ 150 KB, CSS ≤ 18 KB gzip) |
-| `npm run fetch:photos --prefix frontend` | Fetch/refresh CC0 prompt photos (credits in `content/CREDITS.md`) |
+| `npm run build` | Build the API (tsup) and the web app (Vite + PWA) |
+| `npm run lint` · `npm run typecheck` · `npm test` | Quality gates across all three packages |
+| `npm run size --prefix frontend` | First-paint budget (JS ≤ 150 KB, CSS ≤ 18 KB gzip) |
 | `npm run db:up` / `npm run db:down` | Start / stop local Postgres |
-| `npm run db:migrate --prefix backend` | Apply SQL migrations (`backend/drizzle/`) |
-| `npm run db:seed --prefix backend` | Seed content, partners and the demo account (idempotent) |
-| `npm run db:reset --prefix backend` | Wipe the local DB volume, migrate and seed |
-| `npm run db:generate --prefix backend` | New migration after editing `schema.ts` |
+| `npm run db:migrate --prefix backend` | Apply migrations in `backend/drizzle/` |
+| `npm run db:seed --prefix backend` | Seed prompts, partners and the demo account (idempotent) |
+| `npm run db:generate --prefix backend` | New migration after editing `backend/src/db/schema.ts` |
+| `npm run fetch:photos --prefix frontend` | Refresh the CC0 prompt photos (credits in `content/CREDITS.md`) |
 
-Demo account: restore code **`SAME7777`**.
+### Re-making the promo video
 
-Google sign-in (optional): set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` in `backend/.env`. In the Google console, the authorized JavaScript origin is `http://localhost:5173` and the redirect URI is `http://localhost:3000/api/auth/google/callback`.
+The video is recorded from the real app, so it can be regenerated after UI changes. It needs ffmpeg on your PATH.
 
-Settled design conflicts: [`docs/DECISIONS.md`](./docs/DECISIONS.md). Deploying for free: `docs/FREE_STACK.md` → `docs/DEPLOYMENT.md`.
+```bash
+node frontend/scripts/promo/reset-demo-db.mjs    # a fresh <db>_promo database (your dev data is untouched)
+# run the API on that database (the script prints the DATABASE_URL), plus the web app
+npm run promo:capture --prefix frontend          # records 4 scenes from the running app
+npm run promo:render --prefix frontend           # composes and encodes docs/media/*.mp4, poster and GIF
+```
 
----
+## Ground rules
 
-## The 30-second pitch (for the reviewer)
+Read [`AGENTS.md`](./AGENTS.md) before changing code. In short: the server decides every match, money is
+for work and never for winning, everything works offline, and every screen stays under the performance budget.
+Settled design questions live in [`docs/DECISIONS.md`](./docs/DECISIONS.md).
 
-- **Short task, real reward:** 10 rounds ≈ 2 minutes. ₹ is paid for verified work, never for winning or luck (India's 2025 online gaming law). Earned money never goes down.
-- **Hooks that fit:** flame streak + freeze, XP levels, badges, city leaderboard, Think Like India daily challenge, Sync Map of all 36 states and UTs.
-- **Built for the users:** offline play against recorded partners, ~150 KB per pack, Hindi/Kannada/Tamil/English, icon-first UI, Lighthouse ≥ 95 on mobile and desktop.
-- **Three real layouts:** phone, tablet and desktop each designed for how the device is used.
-- **Quality built in:** two strangers agreeing *is* the verification; hidden test prompts tune pay; all scoring happens on the server.
+## Docs
+
+| File | What's inside |
+|---|---|
+| [`AGENTS.md`](./AGENTS.md) | Rules for contributors and AI coding agents. Read first |
+| [`docs/PRODUCT.md`](./docs/PRODUCT.md) | Users, constraints, research, scope, metrics |
+| [`docs/GAME_DESIGN.md`](./docs/GAME_DESIGN.md) | Every mechanic, formula, level, badge and the legal rule |
+| [`docs/DESIGN_SYSTEM.md`](./docs/DESIGN_SYSTEM.md) · [`docs/UI_DIRECTION.md`](./docs/UI_DIRECTION.md) | Palette, type, the single `theme.css`, creative direction |
+| [`docs/RESPONSIVE.md`](./docs/RESPONSIVE.md) | Breakpoints and the separate phone / tablet / desktop layouts |
+| [`docs/UX_STATES.md`](./docs/UX_STATES.md) · [`docs/SCREENS.md`](./docs/SCREENS.md) | Copy rules, loading/empty/error states, every screen |
+| [`docs/COMPONENTS.md`](./docs/COMPONENTS.md) · [`docs/MOTION.md`](./docs/MOTION.md) | Component inventory, animation and haptics |
+| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) · [`docs/BACKEND.md`](./docs/BACKEND.md) | System design, offline play, the API pipeline |
+| [`docs/API.md`](./docs/API.md) · [`docs/DATA_MODEL.md`](./docs/DATA_MODEL.md) | Endpoint contracts, PostgreSQL schema |
+| [`docs/CONTENT_I18N.md`](./docs/CONTENT_I18N.md) | Prompts, lexicon, languages |
+| [`docs/PERFORMANCE.md`](./docs/PERFORMANCE.md) · [`docs/ACCESSIBILITY.md`](./docs/ACCESSIBILITY.md) | Budgets and the a11y checklist |
+| [`docs/SECURITY.md`](./docs/SECURITY.md) · [`docs/TESTING.md`](./docs/TESTING.md) | Threat model, anti-cheat, the test strategy |
+| [`docs/TECH_STACK.md`](./docs/TECH_STACK.md) · [`docs/FREE_STACK.md`](./docs/FREE_STACK.md) · [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) | Library choices, ₹0 services, deploying |
+| [`docs/DECISIONS.md`](./docs/DECISIONS.md) | Settled conflicts between docs (wins over the others) |
+| [`docs/ROADMAP.md`](./docs/ROADMAP.md) | The 5-day build plan and submission notes |
+
+*Prompt photos are CC0; see [`content/CREDITS.md`](./content/CREDITS.md). Pay figures are demo money in this build.*

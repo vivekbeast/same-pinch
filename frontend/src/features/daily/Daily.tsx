@@ -3,7 +3,7 @@
 // all five visible as a row, the active one large. Ends with a shareable grid.
 import { useMutation } from "@tanstack/react-query";
 import { m } from "motion/react";
-import { CalendarCheck, Copy, Share2 } from "lucide-react";
+import { CalendarCheck, Copy, MessageCircleQuestion, Share2, Volume2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/lib/toast";
 import { api as contract, detectLang, normalize, type z } from "@shared";
@@ -63,8 +63,15 @@ function PromptTile({
       onClick={onClick}
       aria-current={active || undefined}
       className={cn(
-        "relative isolate flex aspect-[3/4] flex-col justify-end overflow-hidden rounded-tile p-3 text-left transition-transform",
-        active ? "bg-night text-white ring-4 pop ring-marigold" : "bg-surface text-ink pop-sm",
+        // Desktop: landscape tiles, so the strip is a compact row, not a wall of tall cards (D52).
+        "relative isolate flex aspect-[3/4] flex-col justify-end overflow-hidden rounded-tile p-3 text-left transition-transform md:aspect-[4/3]",
+        // Question prompts have no photo by design: a soft brand tile with an icon, so they never read as a
+        // broken image (D53).
+        active
+          ? "bg-night text-white ring-4 pop ring-marigold"
+          : p.asset
+            ? "bg-surface text-ink pop-sm"
+            : "bg-brand-soft text-brand-ink pop-sm",
         p.asset && "text-white",
       )}
     >
@@ -83,8 +90,20 @@ function PromptTile({
           />
         </>
       ) : null}
-      {answered ? <Square grade={answered.grade} className="mb-auto size-7" /> : null}
-      <span className="line-clamp-3 text-lg leading-tight font-black">{tk(p.textKey)}</span>
+      {answered ? (
+        <Square grade={answered.grade} className="mb-auto size-7 md:size-6" />
+      ) : !p.asset ? (
+        <span aria-hidden className={cn("mb-auto", active ? "text-marigold" : "text-brand")}>
+          {p.textKey.includes("sound") ? (
+            <Volume2 className="size-7 md:size-6" strokeWidth={2.5} />
+          ) : (
+            <MessageCircleQuestion className="size-7 md:size-6" strokeWidth={2.5} />
+          )}
+        </span>
+      ) : null}
+      <span className="line-clamp-3 text-lg leading-tight font-black md:line-clamp-2 md:text-[15px]">
+        {tk(p.textKey)}
+      </span>
     </button>
   );
 }
@@ -164,6 +183,43 @@ function Grid({ daily }: { daily: Daily }) {
   );
 }
 
+/** Desktop side panel (D55): today's grid as you fill it, what the colours mean, and when a new set lands. */
+function TodayGrid({ daily }: { daily: Daily }) {
+  const answered = new Map(daily.answers.map((a) => [a.idx, a]));
+  const tops = daily.answers.filter((a) => a.grade === "top").length;
+  const { h, m: min } = timeToMidnightIst();
+  return (
+    <aside className="sticky top-8 flex flex-col gap-4 self-start rounded-card bg-surface p-5 pop-sm">
+      <p className="font-display text-[20px] font-black text-ink">{t("daily.done_title", { n: tops })}</p>
+      <div className="grid grid-cols-5 gap-1.5">
+        {daily.prompts.map((p, i) => {
+          const a = answered.get(i);
+          return a ? (
+            <Square key={p.promptId} grade={a.grade} className="aspect-square w-full" />
+          ) : (
+            <span
+              key={p.promptId}
+              aria-hidden
+              className="block aspect-square w-full rounded-[8px] border-[3px] border-dashed border-line"
+            />
+          );
+        })}
+      </div>
+      <ul className="flex flex-col gap-2 border-t-2 border-line pt-4">
+        {(["top", "top5", "none"] as const).map((g) => (
+          <li key={g} className="flex items-center gap-2.5 text-[14px] font-semibold text-ink-2">
+            <Square grade={g} className="size-5 shrink-0" />
+            {t(`daily.grade.${g}`)}
+          </li>
+        ))}
+      </ul>
+      <p className="border-t-2 border-line pt-4 text-[14px] font-semibold text-ink-muted">
+        {t("daily.next_in", { h, m: min })}
+      </p>
+    </aside>
+  );
+}
+
 function DailyPage() {
   const family = useFamily();
   const daily = useDaily();
@@ -191,7 +247,7 @@ function DailyPage() {
 
   if (daily.isPending) {
     return (
-      <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5">
+      <div className="mx-auto flex w-full max-w-[880px] flex-col gap-5">
         <Skeleton className="h-24 rounded-card" />
         <Skeleton className="h-96 rounded-card" />
       </div>
@@ -249,7 +305,7 @@ function DailyPage() {
           className="aspect-[4/3] w-full md:aspect-[4/3] md:max-w-[620px] short:aspect-[16/10]"
         />
       ) : null}
-      <p className="text-[clamp(30px,6vw,48px)] leading-[1.05] font-black text-balance">
+      <p className="text-[clamp(30px,6vw,48px)] leading-[1.05] font-black text-balance md:text-[34px]">
         {tk(current.textKey)}
       </p>
       {last ? (
@@ -262,25 +318,33 @@ function DailyPage() {
           ) : null}
         </div>
       ) : null}
-      <input
-        value={word}
-        onChange={(e) => setWord(e.target.value.slice(0, 40))}
-        placeholder={t("daily.placeholder")}
-        aria-label={t("daily.placeholder")}
-        autoCapitalize="none"
-        autoComplete="off"
-        className="h-14 rounded-full bg-surface px-6 text-[19px] font-bold pop placeholder:font-semibold placeholder:text-ink-muted focus-visible:ring-4 focus-visible:ring-brand/30 focus-visible:outline-none"
-      />
+      {/* Phone: stacked. Wider: the word and its button on one row, not a bar spanning the card (D51). */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center">
+        <input
+          value={word}
+          onChange={(e) => setWord(e.target.value.slice(0, 40))}
+          placeholder={t("daily.placeholder")}
+          aria-label={t("daily.placeholder")}
+          autoCapitalize="none"
+          autoComplete="off"
+          className="h-14 min-w-0 rounded-full bg-surface px-6 text-[19px] font-bold pop placeholder:font-semibold placeholder:text-ink-muted focus-visible:ring-4 focus-visible:ring-brand/30 focus-visible:outline-none md:flex-1"
+        />
+        <Button
+          type="submit"
+          variant="play"
+          disabled={!word.trim()}
+          busy={answer.isPending}
+          className="w-full md:h-14 md:w-auto md:min-w-[200px] lg:h-14 xl:h-14"
+        >
+          {answer.isPending ? t("daily.locking") : t("daily.lock")}
+        </Button>
+      </div>
       {answer.error ? <InlineError error={answer.error} /> : null}
-      <Button type="submit" variant="play" block disabled={!word.trim()} busy={answer.isPending}>
-        {answer.isPending ? t("daily.locking") : t("daily.lock")}
-      </Button>
     </form>
   );
 
-  return (
-    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-4 pt-[env(safe-area-inset-top)] md:gap-6">
-      <h1 className="sr-only">{t("daily.title", { n: d.number })}</h1>
+  const body = (
+    <div className="flex min-w-0 flex-col gap-4 md:gap-5">
       {header}
       {family !== "phone" ? (
         <div className="grid grid-cols-5 gap-3">
@@ -312,6 +376,20 @@ function DailyPage() {
         </ol>
       )}
       {finished ? <Grid daily={d} /> : stage}
+    </div>
+  );
+
+  // Desktop: the challenge plus a side panel, instead of one column with the screen's right half empty.
+  return family === "desktop" ? (
+    <div className="mx-auto grid w-full max-w-[1100px] grid-cols-[minmax(0,1fr)_280px] items-start gap-6">
+      <h1 className="sr-only">{t("daily.title", { n: d.number })}</h1>
+      {body}
+      <TodayGrid daily={d} />
+    </div>
+  ) : (
+    <div className="mx-auto flex w-full max-w-[880px] flex-col pt-[env(safe-area-inset-top)]">
+      <h1 className="sr-only">{t("daily.title", { n: d.number })}</h1>
+      {body}
     </div>
   );
 }

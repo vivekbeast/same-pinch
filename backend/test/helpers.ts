@@ -91,10 +91,15 @@ export async function promptWithPartner(
   return p!.id;
 }
 
-/** A pack for `userId` whose first round is `promptId` (rest filled with normal prompts). */
+/**
+ * A pack for `userId` whose first round is `promptId`, the rest filled with seeded prompts. Never another
+ * test's prompt: test files share the database, so that would race with their own assertions.
+ */
 export async function packWith(userId: string, promptId: string) {
   const others = await sql<{ id: string }[]>`
-    select id from prompts where active and not is_gold and id <> ${promptId} and kind = 'image' order by id limit 4`;
+    select id from prompts
+    where active and not is_gold and id <> ${promptId} and kind = 'image' and asset_key !~ '^(t-|t_|test-)'
+    order by id limit 4`;
   const [pack] = await sql<{ id: string }[]>`insert into packs (user_id) values (${userId}) returning id`;
   const ids = [promptId, ...others.map((o) => o.id)];
   for (const [idx, id] of ids.entries()) await sql`insert into pack_rounds (pack_id, idx, prompt_id) values (${pack!.id}, ${idx}, ${id})`;

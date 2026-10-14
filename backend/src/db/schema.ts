@@ -369,6 +369,7 @@ export const answers = pgTable(
     pinchX: smallint("pinch_x"),
     pinchY: smallint("pinch_y"),
     spotMatch: boolean("spot_match"), // null when either side didn't pinch
+    hot: boolean("hot").notNull().default(false), // hot hand: XP doubled (HOT_HAND), never ₹
   },
   (t) => [
     foreignKey({ name: "answers_partner_fk", columns: [t.partnerAnswerId], foreignColumns: [t.id] }).onDelete("set null"),

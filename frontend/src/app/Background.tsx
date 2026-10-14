@@ -73,7 +73,8 @@ function useServiceWorker() {
 }
 
 function InstallSheet() {
-  const { open, setOpen } = useInstall();
+  const open = useInstall((s) => s.open);
+  const setOpen = useInstall((s) => s.setOpen);
   return (
     <Sheet open={open} onOpenChange={setOpen} title={t("install.title")} description={t("install.sub")}>
       <div className="flex flex-col gap-3 md:flex-row">

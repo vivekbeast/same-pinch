@@ -4,7 +4,7 @@
 // the (square) photo; the API speaks the 0–1000 grid (toGrid / fromGrid). Lives in animated screens only.
 import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { Hand, ImageOff } from "lucide-react";
-import { useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useId, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { LIMITS, type api, type z } from "@shared";
 import { Confetti } from "@/components/stamp";
 import { cn } from "@/lib/cn";
@@ -49,6 +49,36 @@ function Marker({ at, tone, label, delay = 0 }: { at: Point; tone: "you" | "them
   );
 }
 
+type Crowd = NonNullable<NonNullable<z.infer<typeof api.RoundResultResponse>["spot"]>["crowd"]>;
+
+/** Where everyone else pinched (the hive mind): warm blobs under the two markers, busiest brightest. */
+function CrowdHeat({ cells, still }: { cells: Crowd["cells"]; still: boolean }) {
+  const id = useId();
+  const max = cells[0]?.[2] ?? 1; // busiest first
+  return (
+    <m.svg
+      aria-hidden
+      className="pointer-events-none absolute inset-0 size-full"
+      viewBox={`0 0 ${LIMITS.pinchGrid} ${LIMITS.pinchGrid}`}
+      preserveAspectRatio="none"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={still ? { duration: 0 } : { delay: 0.45, duration: 0.7 }}
+    >
+      <defs>
+        <radialGradient id={id}>
+          <stop offset="0%" className="[stop-color:var(--color-pinch)] [stop-opacity:0.95]" />
+          <stop offset="45%" className="[stop-color:var(--color-marigold)] [stop-opacity:0.7]" />
+          <stop offset="100%" className="[stop-color:var(--color-marigold)] [stop-opacity:0]" />
+        </radialGradient>
+      </defs>
+      {cells.map(([x, y, n]) => (
+        <circle key={`${x}-${y}`} cx={x} cy={y} r={70 + 60 * (n / max)} fill={`url(#${id})`} opacity={0.55 + 0.45 * (n / max)} />
+      ))}
+    </m.svg>
+  );
+}
+
 export function PinchBoard({
   src,
   srcSet,
@@ -57,6 +87,8 @@ export function PinchBoard({
   partner = null,
   revealed = false,
   same = false,
+  crowd = null,
+  crowdLabel,
   interactive,
   onPlace,
   onTap,
@@ -77,6 +109,9 @@ export function PinchBoard({
   partner?: Point | null;
   revealed?: boolean;
   same?: boolean;
+  /** Everyone else's pinches, shown on reveal; `crowdLabel` says how many chose your spot. */
+  crowd?: Crowd | null;
+  crowdLabel?: string;
   interactive: boolean;
   /** Keyboard: arrows move the marker here. Pointer too, unless `onTap` is given. */
   onPlace?: (p: Point) => void;
@@ -134,8 +169,8 @@ export function PinchBoard({
     <div
       className={cn(
         fill
-          ? "pop relative size-full overflow-hidden rounded-[24px] bg-surface-2 [container-type:size]"
-          : "pop w-full rounded-[18px] bg-surface p-2",
+          ? "pop relative size-full overflow-hidden rounded-3xl bg-surface-2 @container-size"
+          : "pop relative w-full rounded-[18px] bg-surface p-2",
         tilt && "tilt-l",
         className,
       )}
@@ -151,7 +186,7 @@ export function PinchBoard({
           fill
             ? // A square that covers the box (max of its width and height), centred; the box clips it.
               "absolute top-1/2 left-1/2 size-[max(100cqw,100cqh)] -translate-x-1/2 -translate-y-1/2 select-none"
-            : "relative aspect-square overflow-hidden rounded-[12px] bg-surface-2 select-none",
+            : "relative aspect-square overflow-hidden rounded-xl bg-surface-2 select-none",
           canPinch && "cursor-crosshair touch-none focus-visible:ring-4 focus-visible:ring-brand/40 focus-visible:outline-none",
         )}
       >
@@ -176,6 +211,7 @@ export function PinchBoard({
             </span>
           </span>
         ) : null}
+        {revealed && crowd?.cells.length ? <CrowdHeat cells={crowd.cells} still={!!still} /> : null}
         {revealed && !same && mine && partner ? (
           <svg aria-hidden className="pointer-events-none absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             <line
@@ -220,6 +256,21 @@ export function PinchBoard({
           ) : null}
         </AnimatePresence>
       </div>
+      {/* On the outer box, not the photo square: in `fill` mode the square's edges are cropped. It sits on
+          the side away from your pinch so it never covers your marker. */}
+      {revealed && crowd && crowdLabel ? (
+        <m.p
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={still ? { duration: 0 } : { ...spring.soft, delay: 0.8 }}
+          className={cn(
+            "pointer-events-none absolute left-3 z-20 max-w-[85%] rounded-full bg-night/80 px-3.5 py-1.5 text-[14px] font-semibold text-white",
+            mine && mine.y > 0.55 ? "top-3" : "bottom-3",
+          )}
+        >
+          {crowdLabel}
+        </m.p>
+      ) : null}
     </div>
   );
 }

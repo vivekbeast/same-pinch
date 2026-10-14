@@ -61,8 +61,8 @@ function Promise_() {
       chips={
         <div className="grid w-full grid-cols-3 gap-3">
           {stats.map(([v, l]) => (
-            <div key={l} className="rounded-tile bg-night-2 p-3">
-              <p className="text-[32px] leading-none font-bold text-success-bright">{v}</p>
+            <div key={l} className="rounded-tile bg-night-2 p-3 md:px-4 md:py-2.5">
+              <p className="text-[32px] leading-none font-bold text-success-bright md:text-[26px]">{v}</p>
               <p className="mt-1 text-sm text-white/70">{l}</p>
             </div>
           ))}
@@ -166,25 +166,28 @@ function PlayPrefs() {
   const toggle = (key: string, value: boolean) => update.mutate({ settings: { [key]: value } });
   return (
     <Panel>
-      <div className="flex items-center gap-4 px-5 py-3">
-        <span className="flex-1 text-[17px] font-medium">{t("settings.language")}</span>
-        <select
-          value={me.uiLang}
-          onChange={(e) => {
-            const lang = e.target.value as UiLang;
-            void chooseLang(lang);
-            update.mutate({ uiLang: lang });
-          }}
-          aria-label={t("settings.language")}
-          className="h-11 rounded-full bg-brand-soft px-4 font-semibold text-brand-ink"
-        >
-          {UI_LANGS.map((l) => (
-            <option key={l} value={l}>
-              {LANG_NAME[l]}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* A Row like the toggles below it, so all five line up (D52). */}
+      <Row
+        title={t("settings.language")}
+        trailing={
+          <select
+            value={me.uiLang}
+            onChange={(e) => {
+              const lang = e.target.value as UiLang;
+              void chooseLang(lang);
+              update.mutate({ uiLang: lang });
+            }}
+            aria-label={t("settings.language")}
+            className="h-11 rounded-full bg-brand-soft px-4 font-semibold text-brand-ink"
+          >
+            {UI_LANGS.map((l) => (
+              <option key={l} value={l}>
+                {LANG_NAME[l]}
+              </option>
+            ))}
+          </select>
+        }
+      />
       {(
         [
           ["sound", t("settings.sound"), undefined, s.sound !== false],
@@ -365,7 +368,7 @@ function YourAnswers() {
 export default function Settings() {
   const family = useFamily();
   const body = (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 md:gap-6">
       <Section id="profile">
         <ProfileForm />
       </Section>

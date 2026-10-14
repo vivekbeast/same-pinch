@@ -3,10 +3,10 @@
 // stage with You | Partner cards + a pack-progress rail, fully keyboard-driven.
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { m } from "motion/react";
-import { Lock, X } from "lucide-react";
+import { Flame, Lock, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router";
-import { api as contract, PINCH_KINDS, type z } from "@shared";
+import { api as contract, HOT_HAND, PINCH_KINDS, type z } from "@shared";
 import { Panel } from "@/components/cards";
 import { InlineError } from "@/components/states";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,10 @@ type Result = z.infer<typeof contract.RoundResultResponse>;
 type Phase = "prompting" | "checking" | "revealing" | "sealed";
 
 const isPinch = (r?: Result) => r?.result === "exact" || r?.result === "bhasha";
+
+/** Hot hand: the last HOT_HAND.after rounds in this pack were pinches (the server re-checks). */
+const isHot = (results: (StoredRound | undefined)[], index: number) =>
+  index >= HOT_HAND.after && results.slice(index - HOT_HAND.after, index).every((r) => isPinch(r?.result));
 
 function ProgressDots({ results, index, total }: { results: (StoredRound | undefined)[]; index: number; total: number }) {
   return (
@@ -194,10 +198,13 @@ function RoundView({
   const navigate = useNavigate();
   const family = useFamily();
   const round = pack.rounds[index]!;
+  // Hot hand: half the time for double XP. Decided once per round (RoundView is keyed by index).
+  const [hot] = useState(() => isHot(results, index));
+  const seconds = hot ? Math.ceil(round.seconds * HOT_HAND.timeShare) : round.seconds;
   const [phase, setPhase] = useState<Phase>("prompting");
   const [words, setWords] = useState<Word[]>([]);
   const [current, setCurrent] = useState<Result | null>(null);
-  const [left, setLeft] = useState(round.seconds);
+  const [left, setLeft] = useState(seconds);
   const [leaving, setLeaving] = useState(false);
   const [startedAt] = useState(() => Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
@@ -336,9 +343,11 @@ function RoundView({
 
   const earned = useMemo(() => results.reduce((a, r) => a + (r?.result.earnPaise ?? 0), 0), [results]);
   const prompt = tk(round.textKey, round.textParams ?? undefined);
+  const crowd = current?.spot?.crowd ?? null;
+  const crowdLabel = crowd ? (crowd.near ? t("play.crowd_near", { pct: crowd.near }) : t("play.crowd_alone")) : undefined;
   const announce =
     phase === "revealing" && current
-      ? `${current.spot?.same ? `${t("play.same_spot")} ` : ""}${t(`play.reveal.${current.result}`)} ${current.you.map((w) => w.text).join(", ")}. ${current.partner?.words.map((w) => w.text).join(", ") ?? ""}`
+      ? `${current.spot?.same ? `${t("play.same_spot")} ` : ""}${t(`play.reveal.${current.result}`)} ${current.you.map((w) => w.text).join(", ")}. ${current.partner?.words.map((w) => w.text).join(", ") ?? ""}${crowdLabel ? `. ${crowdLabel}` : ""}`
       : "";
   const title = pinchRound ? t("play.pinch_title") : prompt;
 
@@ -353,6 +362,16 @@ function RoundView({
         <X className="size-5" strokeWidth={3} />
       </button>
       <ProgressDots results={results} index={index} total={pack.rounds.length} />
+      {hot && phase === "prompting" ? (
+        <span
+          role="status"
+          aria-label={t("play.hot")}
+          className="flex shrink-0 items-center gap-1 rounded-full bg-pinch px-2.5 py-0.5 text-[15px] font-black text-white pop-sm"
+        >
+          <Flame className="size-4" strokeWidth={3} aria-hidden />
+          <span aria-hidden>{t("play.hot_chip")}</span>
+        </span>
+      ) : null}
       <span className="shrink-0 text-[18px] font-black text-ink tabular-nums">{index + 1}/{pack.rounds.length}</span>
       <span className="shrink-0 rounded-full bg-marigold px-3 py-0.5 text-[17px] font-black text-ink tabular-nums pop-sm">
         {rupees(earned)}
@@ -420,7 +439,7 @@ function RoundView({
         />
         {submit.error ? <InlineError error={submit.error} onRetry={() => drop()} /> : null}
         <div className="flex items-center gap-3">
-          <TimerRing left={left} total={round.seconds} />
+          <TimerRing left={left} total={seconds} />
           {pinchRound ? (
             // No Lock button on photo rounds: tapping the photo answers. Only the time is left to show.
             <p className="flex-1 text-[15px] font-semibold text-ink-muted" aria-live="polite">
@@ -471,11 +490,13 @@ function RoundView({
     <PinchBoard
       src={saver ? round.asset!.src.replace("-480.", "-320.") : round.asset!.src}
       srcSet={saver ? undefined : round.asset!.srcset}
-      sizes="(min-width: 1280px) 520px, (min-width: 768px) 56vw, 100vw"
+      sizes="(min-width: 1280px) 720px, (min-width: 768px) 56vw, 100vw"
       mine={pinch}
       partner={current?.spot?.partner ? fromGrid(current.spot.partner) : null}
       revealed={phase === "revealing"}
       same={current?.spot?.same ?? false}
+      crowd={phase === "revealing" ? crowd : null}
+      crowdLabel={crowdLabel}
       interactive={phase === "prompting"}
       onPlace={setPinch}
       onTap={tapPinch}
@@ -513,8 +534,10 @@ function RoundView({
       </p>
 
       {family === "phone" && pinchRound ? (
-        // Pinch rounds (D48): the photo fills the screen until you tap; then it shrinks (animated) and the
-        // answer panel slides up from the bottom with the reveal, your partner's words, notes and Next.
+        // Pinch rounds (D48): the photo fills the screen until you tap; then it shrinks and the answer panel
+        // slides up from the bottom with the reveal, your partner's words, notes and Next. The shrink is
+        // instant on purpose: animating height re-lays out the page every frame (AGENTS.md: transform and
+        // opacity only); the panel's slide-up carries the motion.
         <div
           className="mx-auto flex min-h-dvh max-w-[560px] flex-col gap-2.5 px-3 pt-[calc(12px+env(safe-area-inset-top))] sm:px-5"
           style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom) + var(--kb, 0px))" }}
@@ -523,7 +546,7 @@ function RoundView({
           <h1 className="sr-only">{title}</h1>
           <div
             className={cn(
-              "relative shrink-0 transition-[height] duration-500 ease-out-soft",
+              "relative shrink-0",
               phase === "prompting"
                 ? "h-[calc(100dvh-210px-var(--kb,0px))] min-h-[300px]"
                 : "h-[34dvh] min-h-[200px] short:h-[28dvh]",
@@ -610,11 +633,11 @@ function RoundView({
         </div>
       ) : (
         <div className="mx-auto grid min-h-dvh max-w-[1440px] grid-cols-[1fr_300px] gap-8 px-10 py-8">
-          <div className="mx-auto flex w-full max-w-[1000px] flex-col gap-5">
+          <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-5">
             {topBar}
             {/* Desktop: the photo is the big left column (sized to the screen height); title, words and the
                 timer sit beside it — everything visible without scrolling. Cards appear only after answering. */}
-            <div className="grid grid-cols-[minmax(0,min(560px,calc(100dvh-170px)))_1fr] items-start gap-8">
+            <div className="grid grid-cols-[minmax(0,min(720px,calc(100dvh-170px)))_minmax(300px,1fr)] items-start gap-8">
               {media}
               <div className="flex flex-col gap-5 pt-2">
                 {round.kind !== "question" ? (

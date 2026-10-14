@@ -18,7 +18,7 @@ function Shelf() {
   );
   return (
     <Panel className="flex flex-col gap-4 p-4 md:p-6">
-      <p className="font-black text-ink">{t("me.badges_count", { n: earned.length })}</p>
+      <p className="font-black text-ink">{t("me.badges_count", { n: earned.length, total: all.length })}</p>
       <ul className="grid grid-cols-3 gap-x-2 gap-y-5 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6">
         {sorted.map((b, i) => {
           const has = earned.includes(b.id);

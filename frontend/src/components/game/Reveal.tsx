@@ -2,7 +2,7 @@
 // "SAME PINCH!" burst pops with confetti, the stage shakes and a coin pops up. Misses get a soft wobble
 // and a sad Chutki — never shame. Reduced motion: no shake, no confetti; the burst simply appears.
 import { m, useReducedMotion } from "motion/react";
-import { Lock } from "lucide-react";
+import { Flame, Lock } from "lucide-react";
 import { useEffect } from "react";
 import { REGIONS, type api, type z } from "@shared";
 import { Confetti, PinchStamp } from "@/components/stamp";
@@ -30,7 +30,7 @@ function Face({
   return (
     <div
       className={cn(
-        "flex min-h-[170px] flex-col gap-3 rounded-tile p-3.5 pop md:p-5",
+        "flex min-h-42.5 flex-col gap-3 rounded-tile p-3.5 pop md:p-5",
         tone === "you" ? "bg-surface" : "bg-sky-soft",
       )}
     >
@@ -50,7 +50,7 @@ function NoWords() {
 
 function SealedFace({ title }: { title: string }) {
   return (
-    <div className="flex min-h-[170px] flex-col items-center justify-center gap-2 rounded-tile bg-night p-4 text-white pop">
+    <div className="flex min-h-42.5 flex-col items-center justify-center gap-2 rounded-tile bg-night p-4 text-white pop">
       <Lock className="size-7 text-marigold" strokeWidth={2.5} aria-hidden />
       <p className="max-w-full truncate text-[18px] font-black">{title}</p>
       <p className="text-center text-[14px] font-bold text-white/65">{t("play.partner_sealed")}</p>
@@ -71,15 +71,15 @@ function FlipCard({
   wobble?: boolean;
 }) {
   return (
-    <div className={cn("[perspective:900px]", wobble && "animate-wobble")}>
+    <div className={cn("perspective-[900px]", wobble && "animate-wobble")}>
       <m.div
-        className="relative [transform-style:preserve-3d]"
+        className="relative transform-3d"
         initial={false}
         animate={{ rotateY: revealed ? 180 : 0 }}
         transition={{ duration: 0.45, ease: ease.inOut }}
       >
-        <div className="[backface-visibility:hidden]">{front}</div>
-        <div className="absolute inset-0 [transform:rotateY(180deg)] [backface-visibility:hidden]">
+        <div className="backface-hidden">{front}</div>
+        <div className="absolute inset-0 transform-[rotateY(180deg)] backface-hidden">
           {back}
         </div>
       </m.div>
@@ -174,7 +174,7 @@ export function Reveal({
           <PinchStamp
             variant={r.result === "bhasha" ? "bhasha" : "exact"}
             label={t(r.result === "bhasha" ? "play.reveal.bhasha" : "play.reveal.exact")}
-            className="min-h-[150px] min-w-[290px] md:min-h-[170px]"
+            className="min-h-37.5 min-w-72.5 md:min-h-42.5"
           />
         </div>
       ) : null}
@@ -204,6 +204,17 @@ export function Reveal({
             {pinch && sameSpot ? (
               <span className="tilt-l rounded-full bg-lime px-3 py-1 text-[15px] font-black text-ink">
                 {t("play.same_spot_chip")}
+              </span>
+            ) : null}
+            {r.hot ? (
+              <span className="tilt-r flex items-center gap-1 rounded-full bg-pinch px-3 py-1 text-[15px] font-black text-white">
+                <Flame className="size-4" strokeWidth={3} aria-hidden />
+                {t("play.hot_chip")}
+              </span>
+            ) : null}
+            {r.partner?.together ? (
+              <span className="rounded-full bg-bubble-soft px-3 py-1 text-[15px] font-black text-bubble-ink">
+                {t("play.rematch", { n: r.partner.together })}
               </span>
             ) : null}
           </div>

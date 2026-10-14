@@ -200,14 +200,35 @@ export const RoundResultResponse = z.object({
       avatar: Avatar,
       stateCode: RegionCode.nullable(),
       words: z.array(z.object({ text: z.string(), lang: Lang, matched: z.boolean() })),
+      /** Pinches you'd already shared with this person before this round (rematch). */
+      together: z.number().int().min(0).optional(),
     })
     .nullable(), // null only for skipped rounds
   xp: z.number().int(),
+  /** Hot hand bonus applied to this round's XP (HOT_HAND). */
+  hot: z.boolean().optional(),
   earnPaise: Paise, // provisional until the pack is collected (docs/DECISIONS.md D5)
   newRegion: RegionCode.nullable(),
   /** Pinch the Picture: where you both pinched. `partner` is null when they didn't pinch. */
   spot: z
-    .object({ you: PinchPoint, partner: PinchPoint.nullable(), same: z.boolean() })
+    .object({
+      you: PinchPoint,
+      partner: PinchPoint.nullable(),
+      same: z.boolean(),
+      /**
+       * Everyone else's pinches on this photo, binned: `cells` are [x, y, count] at cell centres on the
+       * 0–1000 grid; `near` is the % of them within the same-spot radius of yours. Sent only after your
+       * answer is stored, and only once enough people have pinched.
+       */
+      crowd: z
+        .object({
+          n: z.number().int().min(1),
+          near: z.number().int().min(0).max(100),
+          cells: z.array(z.tuple([z.number().int(), z.number().int(), z.number().int().min(1)])).max(80),
+        })
+        .nullable()
+        .optional(),
+    })
     .nullable()
     .optional(),
 });

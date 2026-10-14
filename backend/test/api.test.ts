@@ -1,6 +1,6 @@
 // End-to-end API tests against a real (test) Postgres: every rule the docs promise, through HTTP.
 import { afterAll, describe, expect, it } from "vitest";
-import { TERMS_VERSION } from "@shared";
+import { BADGE_IDS, TERMS_VERSION } from "@shared";
 import { clearConfigCache } from "../src/services/config.service";
 import { client, linkGoogle, newPlayer, packWith, playPack, promptWithPartner, roundBody, SECRET_KEYS, SIGNUP, sql } from "./helpers";
 
@@ -161,7 +161,7 @@ describe("profile", () => {
   it("lists badges", async () => {
     const { c } = await newPlayer();
     const res = await c.get("/me/badges").expect(200);
-    expect(res.body.all).toHaveLength(12);
+    expect(res.body.all).toHaveLength(BADGE_IDS.length);
     expect(res.body.earned).toEqual([]);
   });
 });

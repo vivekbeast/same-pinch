@@ -183,7 +183,7 @@ export function Row({
       )}
     >
       {icon}
-      <span className="flex min-h-16 flex-1 items-center gap-3 border-b-2 border-line py-3 pr-4 group-last:border-0">
+      <span className="flex min-h-16 flex-1 items-center gap-3 border-b-2 border-line py-3 pr-4 group-last:border-0 md:min-h-14 md:py-2.5">
         <span className="min-w-0 flex-1">
           <span className="block text-[17px] font-bold text-ink">{title}</span>
           {sub ? <span className="block text-[15px] font-semibold text-ink-muted">{sub}</span> : null}
@@ -270,7 +270,7 @@ export function Ticket({ children, className }: { children: ReactNode; className
   return (
     <div
       className={cn(
-        "flex items-center gap-4 rounded-tile border-y-2 border-r-2 border-surface bg-surface ticket-edge py-3 pr-4 pl-6",
+        "flex items-center gap-4 rounded-tile border-y-2 border-r-2 border-surface bg-surface ticket-edge py-3 pr-4 pl-6 md:py-2.5",
         className,
       )}
     >

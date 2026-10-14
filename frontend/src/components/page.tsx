@@ -17,8 +17,8 @@ export function Page({
   return (
     <div
       className={cn(
-        "mx-auto flex w-full flex-col gap-5 sm:gap-5 md:gap-7 lg:gap-7 xl:gap-8",
-        wide ? "max-w-[1180px]" : "max-w-[880px]",
+        "mx-auto flex w-full flex-col gap-5 sm:gap-5 md:gap-6 lg:gap-6 xl:gap-6",
+        wide ? "max-w-[1040px]" : "max-w-[880px]",
         className,
       )}
     >
@@ -58,7 +58,7 @@ export function PageHeader({
       <div className="flex min-w-0 flex-col gap-1">
         {back ? <BackToMe /> : null}
         {lead}
-        <h1 className="text-[28px] leading-tight font-black text-ink sm:text-[28px] md:text-[32px] lg:text-[34px] xl:text-[38px]">{title}</h1>
+        <h1 className="text-[28px] leading-tight font-black text-ink sm:text-[28px] md:text-[30px] lg:text-[32px] xl:text-[34px]">{title}</h1>
         {sub ? <p className="text-[16px] text-ink-muted">{sub}</p> : null}
       </div>
       {actions ? <div className="flex shrink-0 gap-2 pt-1">{actions}</div> : null}

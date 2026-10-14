@@ -14,10 +14,14 @@ export const DEFAULT_CONFIG = {
   abuse: { fastResponseMs: 800, fastRoundsToFlag: 3, sameAnswerShare: 0.6 },
   // mode: "simulated" (demo ledger only) | "disabled" | "live" (needs KYC + a payout partner — not built).
   payout: { mode: "simulated" as "simulated" | "disabled" | "live", minPaise: 5_000, perDay: 3, demoSettleSeconds: 60 },
-  partner: { recentPool: 20, preferGoldAcc: 0.75 },
+  // rematchChance: how often a partner you've pinched with before is preferred, when one is in the pool.
+  partner: { recentPool: 20, preferGoldAcc: 0.75, rematchChance: 0.35 },
   // Pinch the Picture (D39): same spot = within `sameSpot` on the 0–1000 grid. A same spot earns XP, never ₹:
   // tapping can match by chance, so money stays tied to words matched by meaning.
   pinch: { sameSpot: 170, spotXp: 6 },
+  // Crowd heatmap on the reveal: the last `window` pinches on a photo, binned into `cell`-sized squares; the
+  // busiest `maxCells` are sent. Hidden until `minAnswers` other people have pinched.
+  crowd: { window: 500, cell: 50, maxCells: 60, minAnswers: 5 },
   daily: { launchDay: "2026-05-25", size: 5, minAnswers: 3 },
   levels: LEVELS as unknown as { value: number; nameKey: string; xp: number }[],
 };

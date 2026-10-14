@@ -1,7 +1,14 @@
 // /me — everything that's yours, in one place (docs/DECISIONS.md D41): who you are (avatar, level, XP),
 // then your stuff as four stickers — Wallet, Badges, India map, Flame — each opening its own page.
 // Phone: one column that fits a screen. Desktop: identity card pinned left, a 2×2 bento on the right.
-import { ChevronRight, Coins, Flame, Map as MapIcon, Settings as SettingsIcon, Snowflake } from "lucide-react";
+import {
+  ChevronRight,
+  Coins,
+  Flame,
+  Map as MapIcon,
+  Settings as SettingsIcon,
+  Snowflake,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { REGIONS } from "@shared";
@@ -11,7 +18,8 @@ import { Skeleton } from "@/components/ui/spinner";
 import { cn } from "@/lib/cn";
 import { number, rupees } from "@/lib/format";
 import { t, tk } from "@/lib/i18n";
-import { useBadges, useMap } from "@/lib/queries";
+import { useBadges, useLeaderboard, useMap } from "@/lib/queries";
+import { RecentPeople } from "@/components/people";
 import { useMe } from "@/lib/session";
 
 /** One sticker in "your stuff": a big number, a label, and where it leads. */
@@ -36,7 +44,9 @@ function StuffTile({
     <>
       <span className="flex items-center justify-between gap-2">
         <span className="text-[15px] font-bold opacity-80">{title}</span>
-        <span className="grid size-9 place-items-center rounded-full bg-surface/70 text-ink [&_svg]:size-5">{icon}</span>
+        <span className="grid size-9 place-items-center rounded-full bg-surface/70 text-ink [&_svg]:size-5">
+          {icon}
+        </span>
       </span>
       <span className="flex flex-1 flex-col justify-end gap-1">{children}</span>
       {cta ? (
@@ -48,7 +58,7 @@ function StuffTile({
     </>
   );
   const cls = cn(
-    "pop flex min-h-[124px] flex-col gap-2 rounded-card p-3.5 sm:min-h-[132px] md:min-h-[140px] lg:min-h-[150px] xl:min-h-[180px] xl:p-5",
+    "pop flex min-h-[124px] flex-col gap-2 rounded-card p-3.5 sm:min-h-[132px] md:min-h-[140px] lg:min-h-[140px] xl:min-h-[140px] xl:p-4",
     tone,
     className,
   );
@@ -58,6 +68,50 @@ function StuffTile({
     </Link>
   ) : (
     <div className={cls}>{body}</div>
+  );
+}
+
+/** Desktop: where you stand this week (XP only, never ₹), next to the people you've pinched with (D55). */
+function WeekCard() {
+  const board = useLeaderboard("india");
+  const top = board.data?.top.slice(0, 3) ?? [];
+  const mine = board.data?.me;
+  return (
+    <section aria-labelledby="week" className="flex flex-col gap-3">
+      <h2 id="week" className="px-1 text-[20px] font-black text-ink">
+        {t("people.board")}
+      </h2>
+      <Link
+        to="/people"
+        className="flex press flex-col gap-4 rounded-card bg-night p-5 text-white pop"
+      >
+        {mine ? (
+          <span className="flex items-end gap-3">
+            <span className="font-display text-[56px] leading-none font-black text-pinch">{mine.rank}</span>
+            <span className="pb-1">
+              <span className="block text-[17px] font-black">{t("pals.you")}</span>
+              <span className="block text-[14px] font-semibold text-white/70">
+                {t("pals.xp", { xp: number(mine.xp) })}
+              </span>
+            </span>
+          </span>
+        ) : (
+          <span className="text-[15px] font-semibold text-white/80">{t("pals.empty")}</span>
+        )}
+        {top.length ? (
+          <span className="flex flex-col gap-2 border-t-2 border-white/10 pt-4">
+            {top.map((r) => (
+              <span key={r.handle} className="flex items-center gap-3 text-[14px]">
+                <span className="w-4 font-display font-black text-white/60">{r.rank}</span>
+                <Avatar handle={r.handle} avatar={r.avatar} size={28} />
+                <span className="min-w-0 flex-1 truncate font-bold">{r.handle}</span>
+                <span className="font-semibold text-white/70">{t("pals.xp", { xp: number(r.xp) })}</span>
+              </span>
+            ))}
+          </span>
+        ) : null}
+      </Link>
+    </section>
   );
 }
 
@@ -71,12 +125,13 @@ export default function Profile() {
   const synced = map.data?.synced.length ?? 0;
 
   return (
-    <div className="mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-4 sm:gap-4 md:gap-5 lg:gap-5 xl:grid-cols-12 xl:gap-6">
+    <div className="mx-auto grid w-full max-w-[1040px] grid-cols-1 gap-4 sm:gap-4 md:gap-5 lg:gap-5 xl:grid-cols-12 xl:gap-5">
       <h1 className="sr-only">{t("me.title")}</h1>
 
-      {/* Who you are. Pinned on desktop while the bento scrolls. */}
-      <section className="pop relative flex flex-col gap-4 overflow-hidden rounded-card bg-brand p-5 text-white md:p-6 xl:sticky xl:top-8 xl:col-span-5 xl:self-start xl:p-7">
-        <div className="flex items-center gap-4">
+      {/* Who you are. Desktop: one full-width band (name · level bar · settings) above the tiles, instead of
+          a small card stranded in a half-empty column (D51). */}
+      <section className="relative flex flex-col gap-4 overflow-hidden rounded-card bg-brand p-5 text-white pop md:p-6 xl:col-span-12 xl:flex-row xl:items-center xl:gap-8 xl:px-6 xl:py-5">
+        <div className="flex items-center gap-4 xl:order-1 xl:shrink-0">
           <Avatar handle={me.handle} avatar={me.avatar} size={68} />
           <div className="min-w-0 flex-1">
             <p className="truncate font-display text-[26px] leading-tight font-black">{me.handle}</p>
@@ -87,12 +142,12 @@ export default function Profile() {
           <Link
             to="/me/settings"
             aria-label={t("nav.settings")}
-            className="pop-sm press grid size-12 shrink-0 place-items-center rounded-full bg-surface text-ink"
+            className="grid size-12 shrink-0 press place-items-center rounded-full bg-surface text-ink pop-sm xl:hidden"
           >
             <SettingsIcon className="size-5" strokeWidth={2.5} />
           </Link>
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5 xl:order-2 xl:max-w-[560px] xl:flex-1">
           <div
             role="progressbar"
             aria-valuemin={0}
@@ -107,14 +162,22 @@ export default function Profile() {
             {number(into)} / {number(span || into)} XP · {number(me.xp)} XP total
           </p>
         </div>
+        {/* Desktop: settings sits at the band's far end, labelled, not squeezed next to the name. */}
+        <Link
+          to="/me/settings"
+          className="hidden shrink-0 press items-center gap-2 rounded-full bg-surface px-5 py-3 font-black text-ink pop-sm xl:order-3 xl:ml-auto xl:flex"
+        >
+          <SettingsIcon className="size-5" strokeWidth={2.5} aria-hidden />
+          {t("nav.settings")}
+        </Link>
       </section>
 
       {/* Your stuff: four stickers, each opens its own page. */}
-      <section aria-labelledby="stuff" className="flex flex-col gap-3 xl:col-span-7">
+      <section aria-labelledby="stuff" className="flex flex-col gap-3 xl:col-span-12">
         <h2 id="stuff" className="px-1 text-[20px] font-black text-ink md:text-[22px]">
           {t("me.collection")}
         </h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-4 lg:gap-4 xl:grid-cols-2 xl:gap-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-4 lg:gap-4 xl:grid-cols-4 xl:gap-4">
           <StuffTile
             to="/me/wallet"
             tone="bg-night text-white [--lip:var(--color-ink)]"
@@ -122,7 +185,7 @@ export default function Profile() {
             title={t("me.wallet")}
             cta={t("me.wallet_cta")}
           >
-            <span className="font-display text-[34px] leading-none font-black text-marigold xl:text-[44px]">
+            <span className="font-display text-[34px] leading-none font-black text-marigold xl:text-[36px]">
               {rupees(me.balancePaise)}
             </span>
           </StuffTile>
@@ -130,9 +193,15 @@ export default function Profile() {
           <StuffTile
             to="/me/badges"
             tone="bg-bubble text-ink [--lip:var(--color-bubble-600)]"
-            icon={<span className="font-display text-[14px] font-black">{badges.data?.earned.length ?? "…"}</span>}
+            icon={
+              <span className="font-display text-[14px] font-black">{badges.data?.earned.length ?? "…"}</span>
+            }
             title={t("me.badges")}
-            cta={badges.data ? t("me.badges_count", { n: badges.data.earned.length }) : undefined}
+            cta={
+              badges.data
+                ? t("me.badges_count", { n: badges.data.earned.length, total: badges.data.all.length })
+                : undefined
+            }
           >
             {badges.isPending ? (
               <Skeleton className="h-14 w-28 rounded-full bg-surface/50" />
@@ -159,14 +228,17 @@ export default function Profile() {
             {/* One dot per state/UT, filled as you sync them — a glance, not a map. */}
             <span aria-hidden className="grid w-fit grid-cols-9 gap-1">
               {REGIONS.map((r, i) => (
-                <span key={r.code} className={cn("size-2.5 rounded-full", i < synced ? "bg-brand" : "bg-ink/15")} />
+                <span
+                  key={r.code}
+                  className={cn("size-2.5 rounded-full", i < synced ? "bg-brand" : "bg-ink/15")}
+                />
               ))}
             </span>
           </StuffTile>
 
           <StuffTile tone="bg-pinch-soft text-ink" icon={<Flame strokeWidth={2.5} />} title={t("me.flame")}>
             <span className="flex items-end gap-3">
-              <span className="font-display text-[40px] leading-none font-black text-pinch-ink xl:text-[48px]">
+              <span className="font-display text-[40px] leading-none font-black text-pinch-ink xl:text-[40px]">
                 {me.flame.value}
               </span>
               <span className="pb-1 text-[14px] leading-tight font-semibold text-ink-2">
@@ -179,8 +251,13 @@ export default function Profile() {
             </span>
           </StuffTile>
         </div>
-
       </section>
+
+      {/* Desktop: people + your week, side by side (D55). */}
+      <div className="hidden gap-5 xl:col-span-12 xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+        <RecentPeople variant="rows" limit={5} />
+        <WeekCard />
+      </div>
     </div>
   );
 }

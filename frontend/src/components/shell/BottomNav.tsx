@@ -1,6 +1,7 @@
 // Phone only (base–sm): a floating dark dock — Home · Daily · (PLAY) · Rewards · Me. The lime centre button
 // starts a pack at once, no sheet (docs/UI_DIRECTION.md v3). Solid fill, no blur: cheap on low-end GPUs.
 import { NavLink } from "react-router";
+import { preload } from "@/app/screens";
 import { PinchGlyph } from "@/components/brand";
 import { errorText } from "@/components/states";
 import { Spinner } from "@/components/ui/spinner";
@@ -25,6 +26,7 @@ function Tab({ item }: { item: NavItem }) {
         to={item.to}
         end={item.to === "/"}
         data-tour={`tab-${item.to.slice(1) || "home"}`}
+        onPointerDown={() => preload(item.to)}
         className="flex flex-col items-center gap-0.5 py-1"
       >
         {({ isActive }) => (
@@ -55,6 +57,8 @@ export function PlayFab({ className }: { className?: string }) {
     <button
       type="button"
       data-tour="play"
+      onPointerEnter={() => preload("/play")}
+      onPointerDown={() => preload("/play")}
       onClick={() => start.mutate(undefined, { onError: (e) => toast.error(errorText(e)) })}
       disabled={start.isPending}
       aria-label={t("nav.play")}

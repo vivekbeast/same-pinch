@@ -12,7 +12,10 @@ import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { onIdle } from "@/lib/idle";
 import { prefs } from "@/lib/prefs";
-import { useDaily } from "@/lib/queries";
+import { RecentPeople } from "@/components/people";
+import { Avatar } from "@/components/plates";
+import { cn } from "@/lib/cn";
+import { useDaily, usePeople } from "@/lib/queries";
 import { useMe } from "@/lib/session";
 import { usePackStarter } from "@/lib/start-pack";
 import { toast } from "@/lib/toast";
@@ -40,13 +43,15 @@ function Hud({ handle }: { handle: string }) {
 function PlayHero() {
   const start = usePackStarter();
   return (
-    <section className="pop relative flex flex-col items-center justify-center gap-4 overflow-hidden rounded-card bg-brand px-4 pt-6 pb-6 text-center text-white md:px-6 md:pt-8 md:pb-8 xl:h-full xl:gap-5 xl:px-10 xl:py-12 short:gap-2 short:pt-4">
+    <section className="relative flex flex-col items-center justify-center gap-4 overflow-hidden rounded-card bg-brand px-4 pt-6 pb-6 text-center text-white pop md:px-6 md:pt-8 md:pb-8 xl:h-full xl:min-h-[360px] xl:gap-4 xl:px-8 xl:py-9 short:gap-2 short:pt-4">
       <div className="flex items-end justify-center gap-1" aria-hidden>
-        <WordBubble word="chai" lang="en" state="matched" size="sm" className="tilt-l mb-3" />
-        <WordBubble word="चाय" lang="hi" state="matched" size="sm" side="right" className="tilt-r mb-6" />
+        <WordBubble word="chai" lang="en" state="matched" size="sm" className="mb-3 tilt-l" />
+        <WordBubble word="चाय" lang="hi" state="matched" size="sm" side="right" className="mb-6 tilt-r" />
       </div>
-      <p className="tilt-l rounded-full bg-lime px-3 py-1 text-[14px] font-black text-ink">{t("home.next_round")}</p>
-      <h1 className="max-w-[16ch] text-[30px] leading-[1.02] font-extrabold text-balance md:text-[38px] xl:text-[52px]">
+      <p className="tilt-l rounded-full bg-lime px-3 py-1 text-[14px] font-black text-ink">
+        {t("home.next_round")}
+      </p>
+      <h1 className="max-w-[16ch] text-[30px] leading-[1.02] font-extrabold text-balance md:text-[38px] xl:text-[44px]">
         {t("home.hero_title")}
       </h1>
       <p className="max-w-[28ch] text-[16px] font-bold text-white/80">{t("home.hero_sub")}</p>
@@ -72,15 +77,30 @@ function DailyTile() {
   const daily = useDaily();
   if (daily.isPending) return <Skeleton className="h-[148px] rounded-card" />;
   const d = daily.data;
-  const done = d ? d.answers.length >= 5 : false;
+  const answered = d?.answers.length ?? 0;
+  const done = answered >= 5;
   return (
     <Link
       to="/daily"
       data-tour="daily"
-      className="pop press relative flex min-h-[148px] flex-col justify-between gap-2 overflow-hidden rounded-card bg-bubble p-4 text-ink [--lip:var(--color-bubble-600)] xl:min-h-0 xl:p-6"
+      className="relative flex min-h-[148px] press flex-col justify-between gap-2 overflow-hidden rounded-card bg-bubble p-4 text-ink pop [--lip:var(--color-bubble-600)] xl:min-h-0 xl:flex-1 xl:p-5"
     >
-      <span className="pop-sm tilt-l grid size-11 place-items-center rounded-icon bg-surface text-ink">
-        <CalendarCheck className="size-6" strokeWidth={2.5} aria-hidden />
+      <span className="flex items-start justify-between gap-3">
+        <span className="grid size-11 tilt-l place-items-center rounded-icon bg-surface text-ink pop-sm">
+          <CalendarCheck className="size-6" strokeWidth={2.5} aria-hidden />
+        </span>
+        {/* Today's five prompts at a glance: filled = answered. */}
+        <span aria-hidden className="hidden gap-1.5 md:flex">
+          {Array.from({ length: 5 }, (_, i) => (
+            <span
+              key={i}
+              className={cn(
+                "size-4 rounded-[5px] border-2 border-ink/20",
+                i < answered ? "bg-lime" : "bg-surface/60",
+              )}
+            />
+          ))}
+        </span>
       </span>
       <span>
         <span className="block font-display text-[20px] leading-tight font-extrabold">
@@ -95,32 +115,59 @@ function DailyTile() {
   );
 }
 
+/** The people you've matched, as a stack of faces — the tile is about them. */
+function PeopleTile() {
+  const people = usePeople().data?.people ?? [];
+  return (
+    <Link
+      to="/people"
+      className="flex min-h-[148px] press flex-col justify-between gap-2 rounded-card bg-night p-4 text-white pop xl:min-h-0 xl:flex-1 xl:p-5"
+    >
+      <span className="flex items-start justify-between gap-3">
+        <HeartHandshake className="size-8 text-bubble" strokeWidth={2.5} aria-hidden />
+        {people.length ? (
+          <span aria-hidden className="hidden -space-x-3 md:flex">
+            {people.slice(0, 4).map((p) => (
+              <Avatar
+                key={p.handle}
+                handle={p.handle}
+                avatar={p.avatar}
+                size={40}
+                className="ring-[3px] ring-night"
+              />
+            ))}
+          </span>
+        ) : null}
+      </span>
+      <span>
+        <span className="block font-display text-[20px] leading-tight font-extrabold">
+          {t("home.find_people")}
+        </span>
+        <span className="flex items-center gap-1 text-[14px] font-black text-white/70">
+          {t("home.find_people_cta")} <ChevronRight className="size-4" aria-hidden />
+        </span>
+      </span>
+    </Link>
+  );
+}
+
 function SharedMoments() {
   return (
     <section className="flex flex-col gap-3 xl:h-full" aria-labelledby="shared-moments">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h2 id="shared-moments" className="text-[22px] font-black text-ink">{t("home.shared_title")}</h2>
+          <h2 id="shared-moments" className="text-[22px] font-black text-ink">
+            {t("home.shared_title")}
+          </h2>
           <p className="text-[14px] font-bold text-ink-muted">{t("home.shared_sub")}</p>
         </div>
-        <HeartHandshake className="size-7 text-brand" strokeWidth={2.5} aria-hidden />
+        <HeartHandshake className="size-7 shrink-0 text-brand xl:hidden" strokeWidth={2.5} aria-hidden />
       </div>
       {/* One tile each: today's shared words (Daily) and the people you've matched. */}
       {/* Phone/tablet: side by side. Desktop: stacked in the right column of the bento. */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:gap-4 lg:gap-5 xl:flex-1 xl:grid-cols-1 xl:gap-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:gap-4 lg:gap-5 xl:flex xl:flex-1 xl:flex-col xl:gap-4">
         <DailyTile />
-        <Link
-          to="/people"
-          className="pop press flex min-h-[148px] flex-col justify-between gap-2 rounded-card bg-night p-4 text-white xl:min-h-0 xl:p-6"
-        >
-          <HeartHandshake className="size-8 text-bubble" strokeWidth={2.5} aria-hidden />
-          <span>
-            <span className="block font-display text-[20px] leading-tight font-extrabold">{t("home.find_people")}</span>
-            <span className="flex items-center gap-1 text-[14px] font-black text-white/70">
-              {t("home.find_people_cta")} <ChevronRight className="size-4" aria-hidden />
-            </span>
-          </span>
-        </Link>
+        <PeopleTile />
       </div>
     </section>
   );
@@ -163,10 +210,12 @@ export default function Today() {
   const me = useMe().data!;
   usePrefetchPacks();
   return (
-    // Phone: one column that fits a screen. Desktop: a bento — the PLAY hero takes 7 of 12 columns at full
-    // height, shared moments stack in the remaining 5 (D41).
-    <div className="mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-4 sm:gap-4 md:gap-6 lg:gap-6 xl:min-h-[calc(100dvh-80px)] xl:grid-cols-12 xl:grid-rows-[auto_1fr] xl:gap-6 short:gap-3">
-      <div className="xl:col-span-12">
+    // Phone: one column that fits a screen. Desktop: a bento — the PLAY hero takes 7 of 12 columns, shared
+    // moments stack in the remaining 5 (D41). Content-sized, not viewport-sized: on a tall monitor the tiles
+    // used to stretch into empty slabs (D51). Tall screens centre the block instead of leaving it at the top.
+    <div className="mx-auto grid w-full max-w-[1040px] grid-cols-1 content-start gap-4 sm:gap-4 md:gap-5 lg:gap-5 xl:min-h-[calc(100dvh-112px)] xl:grid-cols-12 xl:content-center xl:gap-5 short:gap-3">
+      {/* Desktop: the rail already has Me; a row just for your name was dead height (D52). */}
+      <div className="xl:hidden">
         <Hud handle={me.handle} />
       </div>
       <div className="xl:col-span-7">
@@ -175,6 +224,8 @@ export default function Today() {
       <div className="xl:col-span-5">
         <SharedMoments />
       </div>
+      {/* Desktop: the people behind those moments, so the screen isn't half empty (D55). */}
+      <RecentPeople className="hidden xl:col-span-12 xl:flex" />
       {tourPending() ? (
         <Suspense fallback={null}>
           <Tour />

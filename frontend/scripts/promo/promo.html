@@ -1,0 +1,247 @@
+<!doctype html>
+<!--
+  Promo video compositor (scripts/promo). A 1920×1080 stage driven entirely by window.render(t): every
+  position, fade and video frame is computed from t, so render.mjs can step it frame by frame and get the
+  exact same film every time. Colours mirror src/styles/theme.css (this file is a build tool, not the app).
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Same Pinch promo</title>
+    <style>
+      @font-face {
+        font-family: "Anek";
+        src: url("../../node_modules/@fontsource-variable/anek-latin/files/anek-latin-latin-wdth-normal.woff2") format("woff2-variations");
+        font-weight: 100 800;
+        font-stretch: 75% 125%;
+      }
+      @font-face {
+        font-family: "Anek";
+        src: url("../../node_modules/@fontsource-variable/anek-devanagari/files/anek-devanagari-devanagari-wdth-normal.woff2") format("woff2-variations");
+        font-weight: 100 800;
+        font-stretch: 75% 125%;
+        unicode-range: U+0900-097F;
+      }
+      :root {
+        --canvas: #edf1fc;
+        --surface: #ffffff;
+        --ink: #151340;
+        --ink-muted: #56557d;
+        --night: #151340;
+        --brand: #3d5afe;
+        --lime: #c6f432;
+        --bubble: #ff8ad8;
+        --marigold: #ffd23f;
+        --sky: #3ec5ff;
+        --pinch: #ff5b3a;
+      }
+      * { box-sizing: border-box; margin: 0; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--canvas); }
+      body { font-family: "Anek", system-ui, sans-serif; color: var(--ink); }
+      #stage {
+        position: relative; width: 1920px; height: 1080px; overflow: hidden;
+        /* Notebook paper, like the app's background. */
+        background-color: var(--canvas);
+        background-image: linear-gradient(rgba(61, 90, 254, 0.06) 2px, transparent 2px),
+          linear-gradient(90deg, rgba(61, 90, 254, 0.06) 2px, transparent 2px);
+        background-size: 48px 48px;
+      }
+      .layer { position: absolute; inset: 0; opacity: 0; will-change: opacity, transform; }
+      .pop { box-shadow: 0 6px 0 rgba(21, 19, 64, 0.18), 0 18px 40px rgba(21, 19, 64, 0.18); border: 4px solid #fff; }
+
+      /* Captions */
+      .cap { position: absolute; left: 150px; top: 50%; width: 700px; transform: translateY(-50%); display: flex; flex-direction: column; gap: 26px; }
+      .kicker { align-self: flex-start; padding: 10px 24px; border-radius: 999px; background: var(--lime); font-weight: 750; font-size: 30px; transform: rotate(-3deg); }
+      .title { font-weight: 800; font-size: 96px; line-height: 0.98; letter-spacing: -0.02em; }
+      .sub { font-weight: 550; font-size: 36px; line-height: 1.25; color: var(--ink-muted); max-width: 640px; }
+
+      /* Devices */
+      .phone {
+        position: absolute; right: 230px; top: 50%; width: 471px; height: 1003px; margin-top: -501px;
+        border-radius: 64px; background: var(--night); padding: 18px;
+        box-shadow: 0 10px 0 rgba(21, 19, 64, 0.25), 0 40px 90px rgba(21, 19, 64, 0.35);
+      }
+      .phone video { width: 100%; height: 100%; border-radius: 48px; object-fit: cover; display: block; background: var(--canvas); }
+      .laptop { position: absolute; right: 90px; top: 50%; width: 1100px; margin-top: -380px; }
+      .laptop .screen { border-radius: 28px; background: var(--night); padding: 16px; box-shadow: 0 10px 0 rgba(21, 19, 64, 0.25), 0 40px 90px rgba(21, 19, 64, 0.35); }
+      .laptop video { width: 100%; aspect-ratio: 1440 / 900; border-radius: 16px; display: block; background: var(--canvas); }
+      .laptop .base { width: 1180px; height: 28px; margin: 0 -40px; border-radius: 0 0 28px 28px; background: #2e2c5c; }
+      .wide .cap { width: 560px; left: 110px; }
+      .wide .title { font-size: 84px; }
+
+      /* Title + end cards */
+      .center { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px; text-align: center; }
+      .logo { width: 210px; height: 158px; }
+      .brand { font-weight: 800; font-size: 170px; letter-spacing: -0.03em; line-height: 0.9; }
+      .tag { font-weight: 600; font-size: 46px; color: var(--ink-muted); }
+      .words { position: relative; height: 120px; width: 900px; }
+      .word { position: absolute; top: 20px; padding: 14px 34px 14px 18px; border-radius: 26px; background: var(--lime); font-weight: 750; font-size: 54px; display: flex; align-items: center; gap: 16px; }
+      .word b { font-size: 22px; font-weight: 800; color: #fff; border-radius: 999px; padding: 6px 12px; }
+      .stamp { position: absolute; left: 50%; top: 4px; padding: 18px 44px; border-radius: 22px; background: var(--bubble); font-weight: 800; font-size: 64px; white-space: nowrap; }
+      .chips { display: flex; gap: 22px; }
+      .chip { padding: 14px 30px; border-radius: 999px; font-weight: 700; font-size: 32px; background: var(--surface); }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <!-- 0 · Title -->
+      <section class="layer center" id="s-title">
+        <img class="logo" src="../../public/favicon.svg" alt="" />
+        <h1 class="brand">Same Pinch</h1>
+        <div class="words">
+          <span class="word pop" id="w-en"><b style="background: var(--brand)">EN</b>chai</span>
+          <span class="word pop" id="w-hi"><b style="background: #f26b1d">HI</b>चाय</span>
+          <span class="stamp pop" id="w-stamp">SAME PINCH!</span>
+        </div>
+        <p class="tag" id="t-tag">Think alike. In any language.</p>
+      </section>
+
+      <!-- 1 · Welcome story -->
+      <section class="layer" id="s-welcome">
+        <div class="cap">
+          <span class="kicker">One photo · two strangers</span>
+          <h2 class="title">Tap what catches your eye.</h2>
+          <p class="sub">Someone across India sees the same picture. Pick the same spot and you've pinched.</p>
+        </div>
+        <div class="phone"><video id="v-welcome" src=".out/clips/welcome.webm" muted preload="auto"></video></div>
+      </section>
+
+      <!-- 2 · Playing -->
+      <section class="layer" id="s-play">
+        <div class="cap">
+          <span class="kicker" style="background: var(--marigold)">The hive mind</span>
+          <h2 class="title">See where India looked.</h2>
+          <p class="sub">After you answer, a heatmap shows every pinch on the photo. Words match across languages too.</p>
+        </div>
+        <div class="phone"><video id="v-play" src=".out/clips/play.webm" muted preload="auto"></video></div>
+      </section>
+
+      <!-- 3 · Results -->
+      <section class="layer wide" id="s-results">
+        <div class="cap">
+          <span class="kicker" style="background: var(--bubble)">After the pack</span>
+          <h2 class="title">Every round, dealt back.</h2>
+          <p class="sub">Cards flip in 3D, XP fills up, streaks and badges pop.</p>
+        </div>
+        <div class="laptop"><div class="screen"><video id="v-results" src=".out/clips/results.webm" muted preload="auto"></video></div><div class="base"></div></div>
+      </section>
+
+      <!-- 4 · Desktop -->
+      <section class="layer wide" id="s-desktop">
+        <div class="cap">
+          <span class="kicker" style="background: var(--sky)">Phone · tablet · desktop</span>
+          <h2 class="title">Made for every screen.</h2>
+          <p class="sub">A curved rail on desktop, one-thumb play on phones. Works offline.</p>
+        </div>
+        <div class="laptop"><div class="screen"><video id="v-desktop" src=".out/clips/desktop.webm" muted preload="auto"></video></div><div class="base"></div></div>
+      </section>
+
+      <!-- 5 · End -->
+      <section class="layer center" id="s-end">
+        <img class="logo" src="../../public/favicon.svg" alt="" />
+        <h1 class="brand">Same Pinch</h1>
+        <p class="tag">Paid for the work. Never for luck.</p>
+        <div class="chips">
+          <span class="chip pop">Any language</span>
+          <span class="chip pop">Works offline</span>
+          <span class="chip pop">No deposits, ever</span>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      // Timeline (seconds). Each clip segment lasts as long as its clip.
+      const FADE = 0.45;
+      const segs = [];
+      window.segs = segs; // render.mjs reads segment times (e.g. where the GIF starts)
+      let cursor = 0;
+      const add = (id, dur, video) => {
+        segs.push({ id, start: cursor, end: cursor + dur, video });
+        cursor += dur;
+      };
+
+      const ease = (x) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
+      const back = (x) => {
+        x = Math.min(1, Math.max(0, x));
+        const c = 1.7;
+        return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2);
+      };
+      const $ = (id) => document.getElementById(id);
+
+      window.setup = async () => {
+        await document.fonts.ready;
+        const clip = async (id) => {
+          const v = $(id);
+          if (v.readyState < 1) await new Promise((r) => v.addEventListener("loadedmetadata", r, { once: true }));
+          return v.duration;
+        };
+        add("s-title", 3.6);
+        add("s-welcome", await clip("v-welcome"), "v-welcome");
+        add("s-play", await clip("v-play"), "v-play");
+        add("s-results", await clip("v-results"), "v-results");
+        add("s-desktop", await clip("v-desktop"), "v-desktop");
+        add("s-end", 4.2);
+        return cursor;
+      };
+
+      const seek = (v, time) =>
+        new Promise((resolve) => {
+          const target = Math.min(Math.max(0, time), v.duration - 0.001);
+          if (Math.abs(v.currentTime - target) < 0.0005 && v.readyState >= 2) return resolve();
+          v.addEventListener("seeked", () => resolve(), { once: true });
+          v.currentTime = target;
+        });
+
+      window.render = async (t) => {
+        const waits = [];
+        for (const s of segs) {
+          const el = $(s.id);
+          const local = t - s.start;
+          const on = t >= s.start - 0.001 && t < s.end + FADE;
+          if (!on) {
+            el.style.opacity = 0;
+            continue;
+          }
+          // Cross-fade: in over FADE at the start, out over FADE after the end (overlapping the next).
+          const fadeIn = s.start === 0 ? 1 : ease(local / FADE);
+          const fadeOut = 1 - ease((t - s.end) / FADE);
+          el.style.opacity = Math.min(fadeIn, fadeOut);
+
+          // Caption: kicker, title, sub slide up one after another.
+          el.querySelectorAll(".kicker, .title, .sub").forEach((n, i) => {
+            const p = ease((local - 0.15 - i * 0.18) / 0.55);
+            n.style.opacity = p;
+            n.style.translate = `0 ${(1 - p) * 40}px`;
+          });
+          // Device: glides in from the right with a little overshoot.
+          const dev = el.querySelector(".phone, .laptop");
+          if (dev) {
+            const p = back((local - 0.05) / 0.8);
+            dev.style.translate = `${(1 - p) * 260}px 0`;
+          }
+          if (s.video) waits.push(seek($(s.video), local));
+        }
+
+        // Title card: EN and HI bubbles slide in, meet, the stamp slams; then the tagline.
+        const tl = t;
+        const meet = ease((tl - 0.3) / 0.9);
+        $("w-en").style.left = `${-200 + meet * 380}px`;
+        $("w-hi").style.left = `${1000 - meet * 370}px`;
+        const stamp = back((tl - 1.25) / 0.5);
+        $("w-stamp").style.transform = `translateX(-50%) rotate(-4deg) scale(${tl < 1.25 ? 0 : 0.4 + stamp * 0.6})`;
+        $("w-stamp").style.opacity = tl < 1.25 ? 0 : 1;
+        $("t-tag").style.opacity = ease((tl - 1.7) / 0.5);
+
+        // End card: chips pop one by one.
+        const end = segs.find((s) => s.id === "s-end");
+        if (end) {
+          $("s-end").querySelectorAll(".chip").forEach((n, i) => {
+            const p = back((t - end.start - 0.5 - i * 0.2) / 0.5);
+            n.style.transform = `scale(${Math.max(0, p)})`;
+          });
+        }
+        await Promise.all(waits);
+      };
+    </script>
+  </body>
+</html>

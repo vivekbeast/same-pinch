@@ -1,9 +1,9 @@
-// The welcome as a short motion story (docs/DECISIONS.md D46–D47). Three scenes on one big photo that fills
+// The welcome as a short motion story (docs/DECISIONS.md D46–D47, D50). Two scenes on one big photo that fills
 // almost the whole phone height, with a "camera" moving over it and the caption sitting on the picture —
 // like a video, not a deck of cards. Built from the game's own pieces (no video file: instant, offline,
 // translatable). Controls: small progress dots bottom-centre, tap right/left for next/back, pause, skip,
 // replay. Reduced motion: no auto-advance and no camera moves; scenes are stepped through with Next.
-import { AnimatePresence, m, useReducedMotion } from "motion/react";
+import { AnimatePresence, m, useReducedMotion, type TargetAndTransition, type Transition } from "motion/react";
 import { Hand, Pause, Play, RotateCcw } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Logo } from "@/components/brand";
@@ -15,7 +15,9 @@ import { cn } from "@/lib/cn";
 import { t, type Key } from "@/lib/i18n";
 import { spring } from "@/lib/motion";
 
-const SCENE_MS = 3800;
+// Scene 1 is the whole core loop in one take (two strangers → push in → tap → same spot), so it runs longer.
+const SCENE_MS = [6200, 3800];
+const PUSH_AT = 1.8; // s into scene 1: the pills have landed; the camera pushes in on the kite
 // Clean, single-subject photo only (owner: "less messy"): one kite on a plain blue sky.
 const HERO = { src: "/prompts/kites-sky-720.webp", srcSet: "/prompts/kites-sky-480.webp 480w, /prompts/kites-sky-720.webp 720w" };
 const SPOT = { x: 56, y: 37 }; // the kite, % of the (square) photo
@@ -46,52 +48,63 @@ function PlayerPill({ name, place, avatar, tone }: { name: string; place: string
  * the kite whatever the screen shape. `isolate` keeps its layers (photo, dim) under the overlays above it.
  */
 function Camera({ scene, still, children }: { scene: number; still: boolean | null; children?: ReactNode }) {
-  const shot = [
-    { scale: 1, x: "0%", y: "0%" }, // 1: wide
-    { scale: 1.45, x: "-9%", y: "19%" }, // 2: push in on the kite
-    { scale: 1.08, x: "0%", y: "0%" }, // 3: pull back, dim
-  ][Math.min(scene, 2)]!;
+  // 1: settle wide (both players on the same photo), hold, then push in on the kite. 2: pull back, dim.
+  const shots: { animate: TargetAndTransition; transition: Transition }[] = [
+    {
+      animate: { scale: [1.18, 1, 1, 1.45], x: ["0%", "0%", "0%", "-9%"], y: ["0%", "0%", "0%", "19%"] },
+      transition: { duration: PUSH_AT + 1.4, times: [0, 0.3, PUSH_AT / (PUSH_AT + 1.4), 1], ease: [0.22, 1, 0.36, 1] },
+    },
+    { animate: { scale: 1.08, x: "0%", y: "0%" }, transition: { duration: 1.4, ease: [0.22, 1, 0.36, 1] } },
+  ];
+  const shot = shots[Math.min(scene, 1)]!;
   return (
     <div className="pop absolute inset-0 isolate z-0 overflow-hidden rounded-[28px] bg-sky">
       <div className="absolute inset-y-0 left-1/2 aspect-square h-full -translate-x-1/2">
         <m.div
           className="absolute inset-0 origin-center"
           initial={still ? false : { scale: 1.18 }}
-          animate={still ? undefined : shot}
-          transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
+          animate={still ? undefined : shot.animate}
+          transition={shot.transition}
         >
           <img src={HERO.src} srcSet={HERO.srcSet} sizes="(min-width: 640px) 720px, 180vw" alt="" width={720} height={720} className="size-full object-cover" />
           {children}
         </m.div>
       </div>
-      {/* Scene 3 dims the picture so the words take the stage. */}
+      {/* Scene 2 dims the picture so the words take the stage. */}
       <m.div
         aria-hidden
         className="pointer-events-none absolute inset-0 z-0 bg-night"
         initial={{ opacity: 0 }}
-        animate={{ opacity: scene === 2 ? 0.55 : 0 }}
+        animate={{ opacity: scene === 1 ? 0.55 : 0 }}
         transition={{ duration: 0.6 }}
       />
     </div>
   );
 }
 
-/** 1 · Two strangers, one picture: their pills glide onto the top corners of the same photo. */
+/** 1a · Two strangers, one picture: their pills glide onto the top corners, then step aside for the tap. */
 function Strangers() {
   return (
-    <>
+    <m.div
+      className="absolute inset-0"
+      initial={{ opacity: 1 }}
+      animate={{ opacity: 0 }}
+      transition={{ duration: 0.4, delay: PUSH_AT + 0.2 }}
+    >
       <m.span className="absolute top-4 left-3 z-10" initial={{ x: -120, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ ...spring.soft, delay: 0.35 }}>
         <PlayerPill name={t("play.you")} place="Mysuru" avatar="a1" tone="you" />
       </m.span>
       <m.span className="absolute top-4 right-3 z-10" initial={{ x: 120, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ ...spring.soft, delay: 0.6 }}>
         <PlayerPill name="meera_k" place="Kochi" avatar="a3" tone="them" />
       </m.span>
-    </>
+    </m.div>
   );
 }
 
-/** 2 · The tap: a finger glides in, taps, both markers drop, a shared glow breathes. Moves with the camera. */
+/** 1b · The tap, once the camera is in: a finger glides in, taps, both markers drop (yours lime, hers
+ *  bubblegum, like the pills), a shared glow breathes. Moves with the camera. */
 function Tap() {
+  const at = PUSH_AT + 0.6; // every beat below starts after the push-in
   return (
     <>
       <m.span
@@ -99,7 +112,7 @@ function Tap() {
         className="absolute z-20 text-white drop-shadow-sticker"
         initial={{ left: "45%", top: "105%", opacity: 0 }}
         animate={{ left: `${SPOT.x - 3}%`, top: `${SPOT.y + 1}%`, opacity: [0, 1, 1, 0], scale: [1, 1, 0.82, 1] }}
-        transition={{ duration: 1.3, times: [0, 0.25, 0.75, 1], delay: 1.1, ease: "easeInOut" }}
+        transition={{ duration: 1.3, times: [0, 0.25, 0.75, 1], delay: at + 1.1, ease: "easeInOut" }}
       >
         <Hand className="size-7" strokeWidth={2.25} />
       </m.span>
@@ -108,8 +121,9 @@ function Tap() {
         className="absolute size-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-white"
         style={{ left: `${SPOT.x}%`, top: `${SPOT.y}%` }}
         initial={{ scale: 0.2, opacity: 0 }}
-        animate={{ scale: [0.2, 2], opacity: [1, 0] }}
-        transition={{ duration: 0.6, delay: 2 }}
+        // First keyframe invisible: Motion holds it during the delay, so the ring must not show before the tap.
+        animate={{ scale: [0.2, 0.2, 2], opacity: [0, 1, 0] }}
+        transition={{ duration: 0.6, times: [0, 0.01, 1], delay: at + 2 }}
       />
       <m.span
         aria-hidden
@@ -117,15 +131,15 @@ function Tap() {
         style={{ left: `${(SPOT.x + THEIRS.x) / 2}%`, top: `${(SPOT.y + THEIRS.y) / 2}%` }}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: [0, 1.2, 1, 1.1, 1], opacity: 1 }}
-        transition={{ duration: 1.2, delay: 2.6 }}
+        transition={{ duration: 1.2, delay: at + 2.6 }}
       />
-      <m.span aria-hidden className="pop-sm absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-lime" style={{ left: `${SPOT.x}%`, top: `${SPOT.y}%` }} {...pop(2.05)} />
-      <m.span aria-hidden className="pop-sm absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-bubble" style={{ left: `${THEIRS.x}%`, top: `${THEIRS.y}%` }} {...pop(2.45)} />
+      <m.span aria-hidden className="pop-sm absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-lime" style={{ left: `${SPOT.x}%`, top: `${SPOT.y}%` }} {...pop(at + 2.05)} />
+      <m.span aria-hidden className="pop-sm absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-bubble" style={{ left: `${THEIRS.x}%`, top: `${THEIRS.y}%` }} {...pop(at + 2.45)} />
     </>
   );
 }
 
-/** 3 · Words sweep in over the dimmed photo, meet, vanish into the Bhasha sticker. */
+/** 2 · Words sweep in over the dimmed photo, meet, vanish into the Bhasha sticker. */
 function Words() {
   const still = useReducedMotion();
   return (
@@ -173,9 +187,9 @@ function After({ ms, children }: { ms: number; children: ReactNode }) {
   return on ? children : null;
 }
 
+// Two beats: the core loop (who you play with + what you do), then the twist (any language counts).
 const CAPTIONS: { title: Key; sub: Key }[] = [
   { title: "story.1.title", sub: "story.1.sub" },
-  { title: "story.2.title", sub: "story.2.sub" },
   { title: "story.3.title", sub: "story.3.sub" },
 ];
 
@@ -193,7 +207,7 @@ export function Story({ onStart }: { onStart: () => void }) {
     if (!auto) return;
     const id = setTimeout(() => {
       if (document.visibilityState === "visible") setI((x) => x + 1);
-    }, SCENE_MS);
+    }, SCENE_MS[i] ?? SCENE_MS[0]);
     return () => clearTimeout(id);
   }, [auto, i, run]);
 
@@ -213,8 +227,8 @@ export function Story({ onStart }: { onStart: () => void }) {
         <div className="relative mx-auto min-h-[60dvh] w-full max-w-[560px] flex-1 short:min-h-[52dvh]">
           <Camera key={`cam-${run}`} scene={i} still={still}>
             <AnimatePresence>
-              {i === 1 ? (
-                <m.div key="tap" className="absolute inset-0" exit={{ opacity: 0 }}>
+              {i === 0 ? (
+                <m.div key={`tap-${run}`} className="absolute inset-0" exit={{ opacity: 0 }}>
                   <Tap />
                 </m.div>
               ) : null}
@@ -227,17 +241,17 @@ export function Story({ onStart }: { onStart: () => void }) {
                 <Strangers />
               </m.div>
             ) : null}
-            {i === 2 ? (
-              <m.div key={`s3-${run}`} className="pointer-events-none absolute inset-x-0 top-0 bottom-[28%] z-20" exit={{ opacity: 0 }}>
+            {i === 1 ? (
+              <m.div key={`s2-${run}`} className="pointer-events-none absolute inset-x-0 top-0 bottom-[28%] z-20" exit={{ opacity: 0 }}>
                 <Words />
               </m.div>
             ) : null}
           </AnimatePresence>
-          {i === 1 ? (
+          {i === 0 ? (
             <m.span
               key={`chip-${run}`}
               className="pop absolute top-4 right-4 z-20 rotate-6 rounded-full bg-lime px-4 py-1.5 font-display text-[19px] font-black text-ink"
-              {...pop(2.9)}
+              {...pop(PUSH_AT + 3.5)}
             >
               {t("story.same_spot")}
             </m.span>
@@ -278,7 +292,7 @@ export function Story({ onStart }: { onStart: () => void }) {
                   className="block h-full rounded-full bg-ink"
                   initial={{ width: still ? "100%" : "0%" }}
                   animate={{ width: auto || still ? "100%" : "0%" }}
-                  transition={{ duration: auto ? SCENE_MS / 1000 : 0, ease: "linear" }}
+                  transition={{ duration: auto ? (SCENE_MS[i] ?? SCENE_MS[0]!) / 1000 : 0, ease: "linear" }}
                 />
               </span>
             ) : (

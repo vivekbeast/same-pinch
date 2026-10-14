@@ -1,6 +1,7 @@
 // Pinch the Picture (docs/DECISIONS.md D39): pinch a spot on the photo; naming it is optional. Same spot
 // earns XP, never ₹; money stays tied to words matched by meaning. The client never decides either.
 import { describe, expect, it } from "vitest";
+import { randomUUID } from "node:crypto";
 import { client, newPlayer, packWith, promptWithPartner, roundBody, SECRET_KEYS, sql } from "./helpers";
 
 describe("pinch the picture", () => {
@@ -37,7 +38,7 @@ describe("pinch the picture", () => {
     const promptId = await promptWithPartner("t-pinch-none", ["dog"], ["en"]);
     const pack = await packWith(me.id, promptId);
     const res = await c.post("/rounds", roundBody(pack.packId, promptId, [], { pinch: { x: 500, y: 500 } })).expect(200);
-    expect(res.body.spot).toEqual({ you: { x: 500, y: 500 }, partner: null, same: false });
+    expect(res.body.spot).toEqual({ you: { x: 500, y: 500 }, partner: null, same: false, crowd: null });
     expect(res.body.result).not.toBe("skipped");
   });
 
@@ -66,6 +67,68 @@ describe("pinch the picture", () => {
     const a = await c.post("/rounds", body).expect(200);
     const b = await c.post("/rounds", body).expect(200);
     expect(b.body.spot).toEqual(a.body.spot);
+  });
+});
+
+describe("crowd heatmap", () => {
+  /** More recorded pinches on a prompt, from seeded (user-less) answers. */
+  const addPinches = async (promptId: string, pts: [number, number][], flagged = false) => {
+    for (const [x, y] of pts)
+      await sql`
+        insert into answers (id, prompt_id, words, langs, played_at, is_seed, pinch_x, pinch_y, flagged)
+        values (${randomUUID()}, ${promptId}, '{}', '{}', now(), true, ${x}, ${y}, ${flagged})`;
+  };
+
+  it("comes with the reveal: binned, busiest first, % near you; flagged answers and your own don't count", async () => {
+    const { c, me } = await newPlayer();
+    const promptId = await promptWithPartner("t-crowd", ["chai"], ["hi"], { pinch: { x: 510, y: 510 } });
+    await addPinches(promptId, [[520, 530], [540, 505], [100, 100], [900, 900]]);
+    await addPinches(promptId, [[505, 505], [505, 505], [505, 505]], true);
+    const pack = await packWith(me.id, promptId);
+    const res = await c.post("/rounds", roundBody(pack.packId, promptId, [], { pinch: { x: 500, y: 500 } })).expect(200);
+    expect(res.body.spot.crowd).toEqual({
+      n: 5,
+      near: 60,
+      cells: [[525, 525, 3], [125, 125, 1], [925, 925, 1]],
+    });
+    expect(JSON.stringify(res.body)).not.toMatch(SECRET_KEYS);
+  });
+
+  it("stays hidden until enough people have pinched", async () => {
+    const { c, me } = await newPlayer();
+    const promptId = await promptWithPartner("t-crowd-few", ["chai"], ["hi"], { pinch: { x: 510, y: 510 } });
+    await addPinches(promptId, [[520, 530]]);
+    const pack = await packWith(me.id, promptId);
+    const res = await c.post("/rounds", roundBody(pack.packId, promptId, [], { pinch: { x: 500, y: 500 } })).expect(200);
+    expect(res.body.spot.crowd).toBeNull();
+  });
+});
+
+describe("hot hand, rematches and Brain Twin", () => {
+  it("3 pinches in a row: the next round doubles XP only if answered in half time; never ₹", async () => {
+    const { c, me } = await newPlayer();
+    const ids: string[] = [];
+    for (let i = 0; i < 5; i++) ids.push(await promptWithPartner(`t-hot-${i}`, ["chai"], ["hi"]));
+    const [pack] = await sql<{ id: string }[]>`insert into packs (user_id) values (${me.id}) returning id`;
+    for (const [idx, id] of ids.entries()) await sql`insert into pack_rounds (pack_id, idx, prompt_id) values (${pack!.id}, ${idx}, ${id})`;
+    const chai = [{ text: "chai", lang: "hi" }];
+    const play = (i: number, responseMs: number) =>
+      c.post("/rounds", roundBody(pack!.id, ids[i]!, chai, { responseMs, playedAt: new Date(Date.now() + i).toISOString() })).expect(200);
+
+    const first = await play(0, 4_000);
+    expect(first.body).toMatchObject({ result: "exact", xp: 10, hot: false, partner: { together: 0 } });
+    const second = await play(1, 4_000);
+    expect(second.body.partner.together).toBe(1); // rematch: they've pinched with asha once before
+    await play(2, 4_000);
+
+    const slow = await play(3, 15_000); // hot round, but slower than half of 20 s
+    expect(slow.body).toMatchObject({ result: "exact", xp: 10, hot: false });
+    const fast = await play(4, 6_000);
+    expect(fast.body).toMatchObject({ result: "exact", xp: 20, hot: true });
+    expect(fast.body.earnPaise).toBe(slow.body.earnPaise); // money is for the work, not the streak
+
+    const collect = await c.post(`/packs/${pack!.id}/collect`).expect(200);
+    expect(collect.body.newBadges).toContain("brain_twin"); // 3+ pinches with one person this week
   });
 });
 

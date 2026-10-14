@@ -9,6 +9,8 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   { files: ["scripts/**/*.mjs"], languageOptions: { globals: globals.node } },
+  // Promo scripts also run code inside the page (Playwright evaluate) and ship a browser compositor.
+  { files: ["scripts/promo/**/*.{mjs,js}"], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
   {
     files: ["src/**/*.{ts,tsx}"],
     languageOptions: { globals: globals.browser },

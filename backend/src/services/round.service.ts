@@ -2,15 +2,17 @@
 // transaction, with the pack row locked so double-submits serialise.
 import { randomInt } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
-import { LIMITS, PINCH_KINDS, type api, type Lang, type z } from "@shared";
+import { HOT_HAND, LIMITS, PINCH_KINDS, type api, type Lang, type RoundResult, type z } from "@shared";
 import { db, type Tx } from "../db/client.js";
 import { answers, packRounds, packs, prompts, users } from "../db/schema.js";
 import { samePinch, scoreRound, usable, type ScoredWord } from "../domain/match.js";
-import { roundEarnPaise, roundXpWithSpot } from "../domain/rules.js";
+import { crowdHeat } from "../domain/crowd.js";
+import { isHotRound, roundEarnPaise, roundXpWithSpot } from "../domain/rules.js";
 import type { GameConfig } from "../domain/config.js";
 import { AppError } from "../lib/errors.js";
 import type { SessionUser } from "../types.js";
 import { getConfig } from "./config.service.js";
+import { secondsFor } from "./pack.service.js";
 import { burntFor, relatedFn, resolveWords } from "./content.service.js";
 import { getQuality } from "./player.service.js";
 
@@ -24,7 +26,8 @@ const isMatched = (w: ScoredWord, keys: string[]) => keys.includes(`t:${w.text}`
 /**
  * A recorded partner (docs/BACKEND.md §5): same prompt; not me, not my device, not flagged; prefer
  * authors with good gold accuracy; random among the most recent qualifying answers. On Pinch the Picture
- * rounds (D39) a partner who pinched is preferred, and a pinch-only answer qualifies.
+ * rounds (D39) a partner who pinched is preferred, and a pinch-only answer qualifies. Sometimes
+ * (`rematchChance`) someone you've pinched with before is preferred: a rematch.
  */
 async function pickPartner(
   tx: Tx,
@@ -34,10 +37,16 @@ async function pickPartner(
   cfg: GameConfig,
   wantPinch: boolean,
 ) {
-  const rows = await tx.execute<{ id: string; good: boolean; pinched: boolean }>(sql`
+  const rows = await tx.execute<{ id: string; good: boolean; pinched: boolean; rematch: boolean }>(sql`
+    with pals as (
+      select distinct pa.user_id
+      from answers me join answers pa on pa.id = me.partner_answer_id
+      where me.user_id = ${userId} and me.result in ('exact', 'bhasha') and pa.user_id is not null
+    )
     select a.id,
            coalesce(a.author_gold_acc, 0) >= ${cfg.partner.preferGoldAcc}::real as good,
-           a.pinch_x is not null as pinched
+           a.pinch_x is not null as pinched,
+           a.user_id in (select user_id from pals) as rematch
     from answers a
     left join users u on u.id = a.user_id
     where a.prompt_id = ${promptId}
@@ -53,7 +62,9 @@ async function pickPartner(
   const pinched = wantPinch ? rows.filter((r) => r.pinched) : rows;
   const base = pinched.length ? pinched : rows;
   const good = base.filter((r) => r.good);
-  const pool = good.length ? good : base;
+  const fair = good.length ? good : base;
+  const rematches = fair.filter((r) => r.rematch);
+  const pool = rematches.length && randomInt(100) < cfg.partner.rematchChance * 100 ? rematches : fair;
   const id = pool[randomInt(pool.length)]!.id;
   const [row] = await tx.select().from(answers).where(eq(answers.id, id));
   return row ?? null;
@@ -63,7 +74,7 @@ async function pickPartner(
  * Build the response from stored rows. Used for fresh submits and idempotent replays alike, so both
  * return the same shape. Gold fields are never read into the DTO.
  */
-async function present(tx: Tx, row: AnswerRow, newRegion: string | null = null): Promise<RoundResponse> {
+async function present(tx: Tx, row: AnswerRow, cfg: GameConfig, newRegion: string | null = null): Promise<RoundResponse> {
   if (row.result === "skipped") {
     return { result: "skipped", you: [], partner: null, xp: 0, earnPaise: 0, newRegion: null, spot: null };
   }
@@ -83,6 +94,7 @@ async function present(tx: Tx, row: AnswerRow, newRegion: string | null = null):
         avatar: users.avatar,
         pinchX: answers.pinchX,
         pinchY: answers.pinchY,
+        userId: answers.userId, // for the rematch count only; never serialised
       })
       .from(answers)
       .leftJoin(users, eq(users.id, answers.userId))
@@ -95,6 +107,7 @@ async function present(tx: Tx, row: AnswerRow, newRegion: string | null = null):
         avatar: p.avatar ?? "a1",
         stateCode: (p.state as NonNullable<RoundResponse["partner"]>["stateCode"]) ?? null,
         words: pw.map((w) => ({ text: w.text, lang: w.lang, matched: isMatched(w, keys) })),
+        together: p.userId && row.userId ? await pinchesBefore(tx, row, p.userId) : 0,
       };
     }
   }
@@ -104,13 +117,45 @@ async function present(tx: Tx, row: AnswerRow, newRegion: string | null = null):
     you: you.map((w) => ({ text: w.text, lang: w.lang, matched: isMatched(w, keys), burnt: w.burnt })),
     partner,
     xp: row.xp,
+    hot: row.hot,
     earnPaise: row.earnPaise,
     newRegion: (newRegion as RoundResponse["newRegion"]) ?? null,
     spot:
       row.pinchX !== null && row.pinchY !== null
-        ? { you: { x: row.pinchX, y: row.pinchY }, partner: partnerPinch, same: row.spotMatch === true }
+        ? {
+            you: { x: row.pinchX, y: row.pinchY },
+            partner: partnerPinch,
+            same: row.spotMatch === true,
+            crowd: await crowdFor(tx, row, { x: row.pinchX, y: row.pinchY }, cfg),
+          }
         : null,
   };
+}
+
+/** Pinches this player shared with that person before this answer (the rematch chip). */
+async function pinchesBefore(tx: Tx, row: AnswerRow, partnerUserId: string) {
+  const [r] = await tx.execute<{ n: number }>(sql`
+    select count(*)::int as n
+    from answers me join answers pa on pa.id = me.partner_answer_id
+    where me.user_id = ${row.userId} and pa.user_id = ${partnerUserId}
+      and me.id <> ${row.id} and me.received_at < ${row.receivedAt.toISOString()}::timestamptz
+      and me.result in ('exact', 'bhasha') and not me.flagged`);
+  return r?.n ?? 0;
+}
+
+/**
+ * Where everyone else pinched on this photo. Called only from present(), i.e. after this player's answer
+ * is stored, so nobody sees the crowd before committing (AGENTS.md #2).
+ */
+async function crowdFor(tx: Tx, row: AnswerRow, you: { x: number; y: number }, cfg: GameConfig) {
+  const points = await tx.execute<{ x: number; y: number }>(sql`
+    select pinch_x as x, pinch_y as y
+    from answers
+    where prompt_id = ${row.promptId} and not flagged and pinch_x is not null and id <> ${row.id}
+      and (${row.userId}::uuid is null or user_id is null or user_id <> ${row.userId}::uuid)
+    order by received_at desc
+    limit ${cfg.crowd.window}::int`);
+  return crowdHeat([...points], you, cfg.pinch.sameSpot, cfg.crowd);
 }
 
 export async function submitRound(user: SessionUser, deviceHash: string | undefined, input: Input): Promise<RoundResponse> {
@@ -122,7 +167,7 @@ export async function submitRound(user: SessionUser, deviceHash: string | undefi
     const [existing] = await tx.select().from(answers).where(eq(answers.id, input.attemptId));
     if (existing) {
       if (existing.userId !== user.id) throw new AppError("NOT_FOUND");
-      return present(tx, existing);
+      return present(tx, existing, cfg);
     }
 
     // 2. Lock the pack → concurrent submits for the same pack serialise.
@@ -184,7 +229,7 @@ export async function submitRound(user: SessionUser, deviceHash: string | undefi
 
     if (!you.length && !pinch) {
       const [row] = await tx.insert(answers).values({ ...base, result: "skipped", xp: 0, earnPaise: 0 }).returning();
-      return present(tx, row!);
+      return present(tx, row!, cfg);
     }
 
     // 5. Score against a recorded partner. Gold rounds are scored identically (D22).
@@ -202,7 +247,19 @@ export async function submitRound(user: SessionUser, deviceHash: string | undefi
         ? samePinch(pinch, { x: partner.pinchX, y: partner.pinchY }, cfg.pinch.sameSpot)
         : null;
     const earnPaise = cfg.paid_enabled ? roundEarnPaise(outcome.result, quality.multiplier, cfg.pay) : 0;
-    const xp = roundXpWithSpot(outcome.result, outcome.matchKeys.length, spotMatch === true, cfg);
+    // Hot hand: 3 pinches in a row in this pack put this round on half time for double XP. XP only, never ₹.
+    const earlier = await tx
+      .select({ result: answers.result })
+      .from(answers)
+      .where(and(eq(answers.userId, user.id), eq(answers.packId, pack.id)))
+      .orderBy(answers.playedAt);
+    const hot = isHotRound(
+      earlier.map((a) => a.result as RoundResult),
+      input.responseMs,
+      secondsFor(prompt!.kind, cfg, user),
+      HOT_HAND,
+    );
+    const xp = roundXpWithSpot(outcome.result, outcome.matchKeys.length, spotMatch === true, cfg) * (hot ? HOT_HAND.xpMult : 1);
 
     const [row] = await tx
       .insert(answers)
@@ -213,6 +270,7 @@ export async function submitRound(user: SessionUser, deviceHash: string | undefi
         matchConcepts: outcome.matchKeys,
         goldCorrect,
         xp,
+        hot,
         earnPaise,
         spotMatch,
       })
@@ -245,6 +303,6 @@ export async function submitRound(user: SessionUser, deviceHash: string | undefi
         do update set seen = lexicon_candidates.seen + 1, last_seen_at = now()`);
     }
 
-    return present(tx, row!, newRegion);
+    return present(tx, row!, cfg, newRegion);
   });
 }

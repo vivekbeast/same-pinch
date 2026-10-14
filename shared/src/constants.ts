@@ -83,6 +83,7 @@ export const BADGE_IDS = [
   "bharat_synced",
   "india_brain",
   "sharp_eye",
+  "brain_twin",
 ] as const;
 export type BadgeId = (typeof BADGE_IDS)[number];
 
@@ -143,6 +144,14 @@ export const LIMITS = {
   playedAtMaxFutureMs: 5 * 60 * 1000,
   restoreCodeLength: 8,
 } as const;
+
+/**
+ * Hot hand (inside one pack): after `after` pinches in a row, the next round's timer is cut to
+ * `timeShare` of normal and its XP is multiplied by `xpMult` if answered in that time (+ `graceMs`, so an
+ * answer dropped by the timer itself still counts). XP only — never ₹ (docs/GAME_DESIGN.md §0). Shared
+ * because the client shortens the timer and the server grants the XP.
+ */
+export const HOT_HAND = { after: 3, timeShare: 0.5, xpMult: 2, graceMs: 1_000 } as const;
 
 export const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 /** Indian mobile: optional +91 / 0, then 10 digits starting 6–9. Spaces and dashes are ignored. */

@@ -4,7 +4,7 @@
 import { HeartHandshake, Languages, Trophy } from "lucide-react";
 import { REGIONS } from "@shared";
 import { PinchGlyph } from "@/components/brand";
-import { NightCard, Panel } from "@/components/cards";
+import { Panel } from "@/components/cards";
 import { Page, PageHeader } from "@/components/page";
 import { Avatar } from "@/components/plates";
 import { EmptyState, errorText, InlineError } from "@/components/states";
@@ -19,7 +19,13 @@ import { useMe } from "@/lib/session";
 import { usePackStarter } from "@/lib/start-pack";
 import { toast } from "@/lib/toast";
 
-const LEVEL_KEYS = ["level.stranger", "level.same_wave", "level.mind_reader", "level.telepath", "level.pinch_oracle"];
+const LEVEL_KEYS = [
+  "level.stranger",
+  "level.same_wave",
+  "level.mind_reader",
+  "level.telepath",
+  "level.pinch_oracle",
+];
 const regionName = (code: string | null) => REGIONS.find((r) => r.code === code)?.name ?? "";
 
 type Row = { rank: number; handle: string; avatar: string; level: number; xp: number };
@@ -52,17 +58,27 @@ function PinchedWith() {
     );
   }
   return (
-    <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 md:grid-cols-2 md:gap-3 lg:grid-cols-2 xl:grid-cols-2 xl:gap-3">
+    // Up to xl: a grid of stickers. Desktop: one panel of divided rows, so names and states fit untruncated
+    // beside the board (D52).
+    <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 md:grid-cols-2 md:gap-3 lg:grid-cols-2 xl:block xl:overflow-hidden xl:rounded-card xl:bg-surface xl:pop-sm">
       {people.data.people.map((p) => (
-        <li key={p.handle} className="pop-sm flex items-center gap-3 rounded-tile bg-surface p-3">
-          <Avatar handle={p.handle} avatar={p.avatar} size={44} />
+        <li
+          key={p.handle}
+          className="flex items-center gap-3 bg-surface p-3 max-xl:rounded-tile max-xl:pop-sm xl:border-b-2 xl:border-line xl:px-4 xl:py-2.5 xl:last:border-0"
+        >
+          <Avatar handle={p.handle} avatar={p.avatar} size={40} />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[16px] font-bold text-ink">{p.handle}</span>
             <span className="block truncate text-[14px] text-ink-muted">
               {[regionName(p.stateCode), tn("people.moments", p.moments)].filter(Boolean).join(" · ")}
             </span>
           </span>
-          <span className={cn("flex items-center gap-1 rounded-full px-2.5 py-1 text-[12.5px] font-bold text-ink", MOMENT_TONE[p.last])}>
+          <span
+            className={cn(
+              "flex items-center gap-1 rounded-full px-2.5 py-1 text-[12.5px] font-bold text-ink",
+              MOMENT_TONE[p.last],
+            )}
+          >
             {p.last === "bhasha" ? <Languages className="size-3.5" aria-hidden /> : null}
             {t(`people.last.${p.last}`)}
           </span>
@@ -82,12 +98,17 @@ function Podium({ rows, me }: { rows: Row[]; me: string }) {
       {order.map((r) => (
         <li key={r.handle} className="flex w-1/3 max-w-[140px] flex-col items-center gap-1">
           <Avatar handle={r.handle} avatar={r.avatar} size={r.rank === 1 ? 52 : 42} />
-          <span className={cn("max-w-full truncate text-[13px] font-bold", r.handle === me ? "text-brand" : "text-ink")}>
+          <span
+            className={cn(
+              "max-w-full truncate text-[13px] font-bold",
+              r.handle === me ? "text-brand" : "text-ink",
+            )}
+          >
             {r.handle}
           </span>
           <span
             className={cn(
-              "pop grid w-full place-items-start justify-center rounded-t-[16px] rounded-b-[6px] pt-1.5 font-display text-[22px] font-black text-ink",
+              "grid w-full place-items-start justify-center rounded-t-[16px] rounded-b-[6px] pt-1.5 font-display text-[22px] font-black text-ink pop",
               height[r.rank],
               tone[r.rank],
             )}
@@ -111,21 +132,39 @@ function Board() {
   return (
     <div className="flex flex-col gap-3">
       <Podium rows={top.slice(0, 3)} me={me.handle} />
+      {/* You, in one line: rank · You · XP. */}
       {board.data.me ? (
-        <NightCard numeral={board.data.me.rank} title={t("pals.you")} sub={t("pals.xp", { xp: number(board.data.me.xp) })} />
+        <p className="flex items-center gap-4 rounded-tile bg-night px-5 py-3 text-white pop">
+          <span className="font-display text-[30px] leading-none font-black text-pinch">
+            {board.data.me.rank}
+          </span>
+          <span className="flex-1 text-[17px] font-black">{t("pals.you")}</span>
+          <span className="font-display text-[16px] font-bold text-white/80">
+            {t("pals.xp", { xp: number(board.data.me.xp) })}
+          </span>
+        </p>
       ) : null}
       {top.length > 3 ? (
         <Panel as="ul">
           {top.slice(3, 10).map((r) => (
-            <li key={r.handle} className={cn("group flex items-center gap-3 pl-3", r.handle === me.handle && "bg-lime-soft")}>
-              <span className="w-7 shrink-0 text-center font-display text-[17px] font-black text-ink-muted">{r.rank}</span>
+            <li
+              key={r.handle}
+              className={cn("group flex items-center gap-3 pl-3", r.handle === me.handle && "bg-lime-soft")}
+            >
+              <span className="w-7 shrink-0 text-center font-display text-[17px] font-black text-ink-muted">
+                {r.rank}
+              </span>
               <Avatar handle={r.handle} avatar={r.avatar} size={32} />
               <span className="flex min-h-13 flex-1 items-center gap-2 border-b-2 border-line py-2 pr-3 group-last:border-0">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[15px] font-bold text-ink">{r.handle}</span>
-                  <span className="block text-[13px] text-ink-muted">{tk(LEVEL_KEYS[r.level - 1] ?? "level.stranger")}</span>
+                  <span className="block text-[13px] text-ink-muted">
+                    {tk(LEVEL_KEYS[r.level - 1] ?? "level.stranger")}
+                  </span>
                 </span>
-                <span className="font-display text-[15px] font-bold text-ink">{t("pals.xp", { xp: number(r.xp) })}</span>
+                <span className="font-display text-[15px] font-bold text-ink">
+                  {t("pals.xp", { xp: number(r.xp) })}
+                </span>
               </span>
             </li>
           ))}
@@ -139,17 +178,20 @@ export default function Pals() {
   return (
     <Page wide>
       <PageHeader title={t("pals.title")} sub={t("people.sub")} />
-      <div className="grid grid-cols-1 gap-5 sm:gap-5 md:gap-6 lg:gap-6 xl:grid-cols-12 xl:gap-8">
+      <div className="grid grid-cols-1 gap-5 sm:gap-5 md:gap-6 lg:gap-6 xl:grid-cols-12 xl:gap-6">
         <div className="flex flex-col gap-5 xl:col-span-7">
-        <NotesInbox />
-        <section aria-labelledby="pinched-with" className="flex flex-col gap-2.5">
-          <h2 id="pinched-with" className="text-[19px] font-black text-ink md:text-[21px]">
-            {t("people.pinched_with")}
-          </h2>
-          <PinchedWith />
-        </section>
+          <NotesInbox />
+          <section aria-labelledby="pinched-with" className="flex flex-col gap-2.5">
+            <h2 id="pinched-with" className="text-[19px] font-black text-ink md:text-[21px]">
+              {t("people.pinched_with")}
+            </h2>
+            <PinchedWith />
+          </section>
         </div>
-        <section aria-labelledby="board" className="flex flex-col gap-2.5 xl:col-span-5">
+        <section
+          aria-labelledby="board"
+          className="flex flex-col gap-2.5 xl:sticky xl:top-8 xl:col-span-5 xl:self-start"
+        >
           <h2 id="board" className="text-[19px] font-black text-ink md:text-[21px]">
             {t("people.board")}
           </h2>

@@ -40,6 +40,21 @@ export function roundXpWithSpot(result: RoundResult, matches: number, sameSpot: 
   return roundXp(result, matches, cfg.xp) + (sameSpot ? cfg.pinch.spotXp : 0);
 }
 
+/**
+ * Hot hand: the last `after` results in this pack were all pinches, and this round was answered inside
+ * the shortened timer. XP only (docs/GAME_DESIGN.md §0).
+ */
+export function isHotRound(
+  previous: RoundResult[],
+  responseMs: number,
+  seconds: number,
+  hot: { after: number; timeShare: number; graceMs: number },
+) {
+  if (previous.length < hot.after) return false;
+  const streak = previous.slice(-hot.after).every((r) => r === "exact" || r === "bhasha");
+  return streak && responseMs <= seconds * hot.timeShare * 1000 + hot.graceMs;
+}
+
 export function roundXp(result: RoundResult, matches: number, xp: GameConfig["xp"]) {
   switch (result) {
     case "exact":

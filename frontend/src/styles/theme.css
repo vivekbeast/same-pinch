@@ -121,6 +121,7 @@
   --animate-ticker: ticker 28s linear infinite;
   --animate-jiggle: jiggle 2.8s ease-in-out infinite;
   --animate-blink: blink 1.2s ease-in-out infinite;
+  --animate-knob: knob 0.45s var(--ease-bounce);
   @keyframes shimmer {
     from {
       background-position: -200% 0;
@@ -195,6 +196,15 @@
     }
   }
   /* "typing…" dots */
+  /* Nav rail knob: the active icon lands with a little squash (D54). */
+  @keyframes knob {
+    0% {
+      transform: scale(0.55) rotate(-18deg);
+    }
+    100% {
+      transform: scale(1) rotate(0);
+    }
+  }
   @keyframes blink {
     0%,
     100% {

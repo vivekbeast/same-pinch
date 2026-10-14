@@ -13,7 +13,8 @@ type Rule =
   | { type: "kind_pinches"; kind: string; count: number }
   | { type: "regions"; count: number }
   | { type: "daily_perfect" }
-  | { type: "gold_streak"; count: number };
+  | { type: "gold_streak"; count: number }
+  | { type: "twin"; count: number }; // pinches with one person within the last 7 days
 
 interface Stats {
   pinches: number;
@@ -26,6 +27,8 @@ interface Stats {
   dailyPerfect: boolean;
   flame: number;
   goldStreak: number;
+  /** Most pinches with any one person in the last 7 days (Brain Twin). */
+  twinPinches: number;
 }
 
 export function earned(rule: Rule, s: Stats): boolean {
@@ -48,6 +51,8 @@ export function earned(rule: Rule, s: Stats): boolean {
       return s.dailyPerfect;
     case "gold_streak":
       return s.goldStreak >= rule.count;
+    case "twin":
+      return s.twinPinches >= rule.count;
   }
 }
 
@@ -62,6 +67,7 @@ export async function evaluateBadges(tx: Tx, userId: string, flame: number, gold
     max_burnt: number;
     regions: number;
     daily_perfect: boolean;
+    twin: number;
   }>(sql`
     with mine as (
       select a.result, a.match_concepts, a.prompt_id, p.kind
@@ -80,7 +86,14 @@ export async function evaluateBadges(tx: Tx, userId: string, flame: number, gold
       (select count(*)::int from user_regions where user_id = ${userId}) as regions,
       exists (
         select 1 from daily_answers where user_id = ${userId} and grade = 'top' group by day having count(*) >= 5
-      ) as daily_perfect
+      ) as daily_perfect,
+      coalesce((select max(n) from (
+        select count(*) as n
+        from answers me join answers pa on pa.id = me.partner_answer_id
+        where me.user_id = ${userId} and not me.flagged and me.result in ('exact', 'bhasha')
+          and pa.user_id is not null and me.received_at > now() - interval '7 days'
+        group by pa.user_id
+      ) t), 0)::int as twin
     from mine`);
 
   const stats: Stats = {
@@ -94,6 +107,7 @@ export async function evaluateBadges(tx: Tx, userId: string, flame: number, gold
     dailyPerfect: row?.daily_perfect ?? false,
     flame,
     goldStreak,
+    twinPinches: row?.twin ?? 0,
   };
 
   const all = await tx.select({ id: badges.id, rule: badges.rule }).from(badges);

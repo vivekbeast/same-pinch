@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG as C } from "./config";
+import { crowdHeat } from "./crowd";
 import { samePinch, scoreRound, type ScoredWord } from "./match";
 import {
   dailyGrade,
@@ -7,6 +8,7 @@ import {
   displayFlame,
   generateHandle,
   goldAccuracy,
+  isHotRound,
   levelFor,
   maskUpi,
   nextFlame,
@@ -218,5 +220,44 @@ describe("pinch the picture", () => {
     expect(roundXpWithSpot("exact", 1, true, C)).toBe(C.xp.exact + C.pinch.spotXp);
     expect(roundXpWithSpot("exact", 1, false, C)).toBe(C.xp.exact);
     expect(roundEarnPaise("miss", 1, C.pay)).toBe(0);
+  });
+});
+
+describe("hot hand", () => {
+  const hot = { after: 3, timeShare: 0.5, graceMs: 1_000 };
+  it("needs the last 3 results to be pinches", () => {
+    expect(isHotRound(["exact", "bhasha", "exact"], 5_000, 20, hot)).toBe(true);
+    expect(isHotRound(["miss", "exact", "bhasha", "exact"], 5_000, 20, hot)).toBe(true);
+    expect(isHotRound(["exact", "near", "exact"], 5_000, 20, hot)).toBe(false);
+    expect(isHotRound(["exact", "exact"], 5_000, 20, hot)).toBe(false);
+  });
+  it("only counts inside the shortened timer", () => {
+    expect(isHotRound(["exact", "exact", "exact"], 11_000, 20, hot)).toBe(true); // dropped by the timer itself
+    expect(isHotRound(["exact", "exact", "exact"], 11_001, 20, hot)).toBe(false);
+  });
+});
+
+describe("crowd heatmap", () => {
+  const cfg = { window: 500, cell: 50, maxCells: 3, minAnswers: 3 };
+  it("stays hidden below the minimum", () => {
+    expect(crowdHeat([{ x: 1, y: 1 }, { x: 2, y: 2 }], { x: 0, y: 0 }, 170, cfg)).toBeNull();
+  });
+  it("bins points busiest first and measures how many are near you", () => {
+    const pts = [
+      { x: 510, y: 510 },
+      { x: 520, y: 540 },
+      { x: 530, y: 505 },
+      { x: 100, y: 100 },
+      { x: 1000, y: 1000 },
+    ];
+    const c = crowdHeat(pts, { x: 500, y: 500 }, 170, cfg)!;
+    expect(c.n).toBe(5);
+    expect(c.near).toBe(60);
+    expect(c.cells[0]).toEqual([525, 525, 3]);
+    expect(c.cells).toContainEqual([975, 975, 1]); // the grid edge lands in the last cell
+  });
+  it("caps the number of cells", () => {
+    const pts = Array.from({ length: 10 }, (_, i) => ({ x: i * 100, y: 0 }));
+    expect(crowdHeat(pts, { x: 0, y: 0 }, 170, cfg)!.cells).toHaveLength(3);
   });
 });

@@ -2,6 +2,7 @@
 // Me, the badge shelf and the Results reward popups.
 import {
   Award,
+  Brain,
   Eye,
   Flame,
   Languages,
@@ -32,6 +33,7 @@ const ICON: Record<BadgeId, LucideIcon> = {
   bharat_synced: Award,
   india_brain: Trophy,
   sharp_eye: Eye,
+  brain_twin: Brain,
 };
 const FILL = ["bg-marigold", "bg-pinch", "bg-brand-400", "bg-success-bright", "bg-sky"];
 
@@ -51,7 +53,7 @@ export function Medal({
     <span
       className={cn(
         "grid shrink-0 place-items-center rounded-full",
-        size === "lg" ? "size-28" : "size-[72px] md:size-20",
+        size === "lg" ? "size-28" : "size-18 md:size-20",
         earned
           ? cn("text-ink pop", FILL[i % FILL.length])
           : "border-[3px] border-dashed border-line text-ink-faint",

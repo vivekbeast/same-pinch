@@ -89,9 +89,10 @@ export default function AppShell() {
   useAuthFlags();
   return (
     <div className="flex min-h-dvh">
-      {/* Tablet + desktop share the floating dock; phones get the bottom dock (D41). */}
+      {/* Tablet + desktop share the full-height rail; phones get the bottom dock (D41, D54). */}
       <Suspense fallback={null}>{family === "phone" ? null : <NavRail />}</Suspense>
-      <main className="min-w-0 flex-1 px-4 pt-4 pb-32 sm:px-6 md:px-6 md:pt-8 md:pb-12 lg:px-8 xl:px-10 xl:pt-10">
+      {/* md+: extra left room for the rail's knob, which sits half out over the page. */}
+      <main className="min-w-0 flex-1 px-4 pt-4 pb-32 sm:px-6 md:pt-8 md:pr-6 md:pb-12 md:pl-14 lg:pr-8 lg:pl-14 xl:pt-8 xl:pr-10 xl:pl-16">
         <OfflineBanner />
         <AuthGate>
           <Outlet />

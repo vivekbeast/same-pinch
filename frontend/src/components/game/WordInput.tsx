@@ -2,7 +2,7 @@
 // the language tag to switch EN → HI → KN → TA (romanised). Enter/comma adds; Backspace on empty removes.
 // Smart Chips (D39) finish the word you're typing — same language only, never a translation.
 import { m, AnimatePresence } from "motion/react";
-import { forwardRef, useLayoutEffect, useState, type KeyboardEvent } from "react";
+import { forwardRef, useDeferredValue, useLayoutEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { detectLang, LIMITS, normalize, type Lang } from "@shared";
 import { LANG_TAG, WordBubble } from "@/components/words";
 import { cn } from "@/lib/cn";
@@ -77,10 +77,15 @@ export const WordInput = forwardRef<
     onChange(words.map((x, j) => (j === i ? { ...x, lang: next } : x)));
   };
 
-  // Smart Chips: completions for the word being typed (2+ letters), from the cached word list.
+  // Smart Chips: completions for the word being typed (2+ letters), from the cached word list. Computed
+  // from a deferred copy of the text, so typed letters paint first and the list scan never delays them.
   const list = useWordList().data;
   const full = words.length >= LIMITS.maxWords;
-  const chips = full || disabled ? [] : suggest(list, text, (LATIN_CYCLE.includes(lang as Lang) ? lang : "en") as Lang);
+  const typed = useDeferredValue(text);
+  const chips = useMemo(
+    () => (full || disabled ? [] : suggest(list, typed, (LATIN_CYCLE.includes(lang as Lang) ? lang : "en") as Lang)),
+    [full, disabled, list, typed, lang],
+  );
   // Parent submit (e.g. a tap on the photo) takes whatever is typed, even without Enter.
   useLayoutEffect(() => {
     if (!flushRef) return;

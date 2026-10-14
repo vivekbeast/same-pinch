@@ -30,3 +30,6 @@ playwright-report
 test-results
 .lighthouseci
 *.tsbuildinfo
+
+# Promo video working files (scripts/promo)
+scripts/promo/.out/

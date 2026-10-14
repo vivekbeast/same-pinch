@@ -86,7 +86,7 @@ function Timeline() {
                 <Ticket key={i.id}>
                   <IconTile
                     tone={i.kind === "payout" ? "night" : i.status === "pending_review" ? "marigold" : "soft"}
-                    className="size-11"
+                    className="size-11 md:size-10"
                   >
                     {i.kind === "payout" ? (
                       <ArrowUpRight strokeWidth={1.75} />
@@ -103,7 +103,7 @@ function Timeline() {
                   </div>
                   <span
                     className={cn(
-                      "shrink-0 text-2xl font-bold",
+                      "shrink-0 text-2xl font-bold md:text-xl",
                       i.amountPaise < 0 ? "text-ink" : "text-success",
                     )}
                   >
@@ -294,8 +294,10 @@ export default function Wallet() {
       ) : null}
     </Panel>
   ) : (
-    <div className="flex flex-col gap-2">
+    // Desktop: a normal-sized button in the header, not a bar across the whole page (D51).
+    <div className={cn("flex flex-col gap-2", family === "desktop" && "items-end")}>
       <Button
+        size={family === "desktop" ? "md" : undefined}
         onClick={() => setSending(true)}
         disabled={!wallet.data || wallet.data.balancePaise < 5000 || !me.payout.eligible}
       >
@@ -303,10 +305,11 @@ export default function Wallet() {
         {t("wallet.send")}
       </Button>
       {wallet.data && wallet.data.balancePaise < 5000 ? (
-        <p className="text-center text-[15px] text-ink-muted">{t("errors.MIN_PAYOUT")}</p>
+        <p className={cn("text-[15px] text-ink-muted", family === "desktop" ? "text-right" : "text-center")}>{t("errors.MIN_PAYOUT")}</p>
       ) : null}
     </div>
   );
+  const sendInHeader = family === "desktop" && !needsIdentity;
 
   const howPay = wallet.data ? (
     <NightCard
@@ -321,17 +324,23 @@ export default function Wallet() {
 
   return (
     <Page wide={family === "desktop"}>
-      <PageHeader back title={t("wallet.title")} sub={config?.demoMode ? t("common.demo_money") : undefined} />
+      <PageHeader
+        back
+        title={t("wallet.title")}
+        sub={config?.demoMode ? t("common.demo_money") : undefined}
+        actions={sendInHeader ? sendCta : undefined}
+      />
       {wallet.error ? <InlineError error={wallet.error} onRetry={() => wallet.refetch()} /> : null}
       {tiles}
-      {sendCta}
+      {sendInHeader ? null : sendCta}
       {family === "desktop" ? (
-        <div className="grid grid-cols-2 items-start gap-8">
+        <div className="grid grid-cols-[minmax(0,1fr)_340px] items-start gap-6">
           <section className="flex flex-col gap-3">
             <h2 className="px-1 text-section font-bold">{t("wallet.earnings")}</h2>
             <Timeline />
           </section>
-          <section className="flex flex-col gap-3">
+          {/* Pinned while the long earnings list scrolls past. */}
+          <section className="sticky top-8 flex flex-col gap-3">
             <h2 className="px-1 text-section font-bold">{t("wallet.payouts")}</h2>
             <PayoutList />
             {howPay}

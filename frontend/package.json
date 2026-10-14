@@ -14,7 +14,9 @@
     "format": "prettier --write src",
     "size": "node scripts/check-size.mjs",
     "make:icons": "node scripts/make-icons.mjs",
-    "fetch:photos": "node scripts/fetch-prompt-photos.mjs"
+    "fetch:photos": "node scripts/fetch-prompt-photos.mjs",
+    "promo:capture": "node scripts/promo/capture.mjs",
+    "promo:render": "node scripts/promo/render.mjs"
   },
   "dependencies": {
     "@fontsource-variable/anek-devanagari": "5.3.0",

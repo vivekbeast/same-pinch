@@ -107,18 +107,27 @@ Gold prompts look exactly like normal rounds. Partner answers are **never** incl
   result: "exact" | "bhasha" | "near" | "miss" | "skipped",
   you:     { text: string; lang: Lang; matched: boolean; burnt: boolean }[],
   partner: { handle: string; avatar: string; stateCode: string;
-             words: { text: string; lang: Lang; matched: boolean }[] },
+             words: { text: string; lang: Lang; matched: boolean }[];
+             together: number },  // pinches you'd shared with them before this round (rematch chip)
   xp: number,
+  hot: boolean,             // hot hand bonus applied (XP ×2, never ₹)
   earnPaise: number,        // provisional until the pack is collected
   newRegion?: string,
   // Pinch the Picture (D39): where you both pinched; partner is null if they didn't pinch
-  spot: { you: {x, y}; partner: {x, y} | null; same: boolean } | null
+  spot: { you: {x, y}; partner: {x, y} | null; same: boolean;
+          // everyone else's pinches, binned: [x, y, count] at cell centres, busiest first (≤ 60);
+          // near = % within the same-spot radius of yours. null until ≥ crowd.minAnswers others pinched.
+          crowd: { n: number; near: 0..100; cells: [x, y, count][] } | null } | null
 }
 ```
 - **Idempotent** on `attemptId`: resending returns the same result, never double-pays.
 - No words **and** no pinch = `skipped`. A pinch alone is a played round (result `miss` unless words matched).
 - Same spot = within `pinch.sameSpot` (170 on the 0–1000 grid) of the partner's pinch → `+pinch.spotXp` XP, **never ₹**.
 - `playedAt` must be within the last 48 h and not more than 5 min in the future.
+- **Crowd** is computed only inside the response, after the answer is stored: nobody sees where others pinched before
+  committing. Flagged answers and your own never count.
+- **Hot hand** (`HOT_HAND` in shared): the last 3 results in this pack were pinches and `responseMs` ≤ half the round's
+  seconds (+1 s grace) → XP ×2. The client shows the shortened timer; the server decides.
 
 ### `GET /words` → Smart Chips word lists (public, `Cache-Control: public, max-age=86400`, ETag)
 ```ts

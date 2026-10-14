@@ -37,7 +37,7 @@ export function assetFor(p: Pick<PromptRow, "kind" | "assetKey">): RoundDto["ass
   return { src: v(480), srcset: `${v(320)} 320w, ${v(480)} 480w, ${v(720)} 720w` };
 }
 
-function secondsFor(kind: PromptRow["kind"], cfg: GameConfig, user: SessionUser) {
+export function secondsFor(kind: PromptRow["kind"], cfg: GameConfig, user: SessionUser) {
   const base = kind === "sound" ? cfg.round.soundSeconds : cfg.round.seconds;
   return (user.settings as { moreTime?: boolean })?.moreTime ? base * 2 : base; // WCAG 2.2.1
 }

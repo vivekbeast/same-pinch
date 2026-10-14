@@ -1,7 +1,7 @@
 // /play/:packId/done — Results (docs/UI_DIRECTION.md v2 §3). Score + earnings count up; Collect makes it
 // count; then each reward (flame, level, badge, new state) pops one by one; Play again is the big button.
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { m } from "motion/react";
+import { m, useReducedMotion } from "motion/react";
 import { CheckCheck, Flame, House, Snowflake } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
@@ -15,6 +15,8 @@ import { errorText, InlineError } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { WordBubble } from "@/components/words";
 import { Medal } from "@/components/medal";
+import { Confetti } from "@/components/stamp";
+import { RoundRecap } from "./RoundRecap";
 import { api, ApiError } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { track } from "@/lib/events";
@@ -68,6 +70,31 @@ function MatchRow({ r }: { r: StoredRound }) {
         </p>
       ) : null}
     </li>
+  );
+}
+
+/** After collect: the level bar fills from where you were to where you are now (scaleX, D55). */
+function XpBar({ done }: { done: Summary }) {
+  const [into, span] = done.level.progress;
+  const total = span || into || 1;
+  const from = done.level.leveledUp ? 0 : Math.max(0, into - done.xpGained);
+  return (
+    <div className="flex flex-col gap-1.5 rounded-tile bg-surface p-3.5 pop-sm">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="font-display text-[17px] font-black text-ink">
+          {tk(done.level.nameKey)} · Lv {done.level.value}
+        </span>
+        <span className="text-[15px] font-black text-success">+{done.xpGained} XP</span>
+      </div>
+      <div className="h-3.5 overflow-hidden rounded-full bg-surface-2">
+        <m.div
+          className="h-full origin-left rounded-full bg-lime"
+          initial={{ scaleX: from / total }}
+          animate={{ scaleX: Math.min(1, into / total) }}
+          transition={{ delay: 0.25, duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -162,7 +189,10 @@ function Results() {
 
   const shownPinches = useCountUp(done ? done.pinches : pinches.length);
   const shownSpots = useCountUp(sameSpots);
+  const earnedPaise = rounds.reduce((a, r) => a + r.result.earnPaise, 0);
+  const shownPaise = useCountUp(earnedPaise);
   const good = pinches.length > 0 || sameSpots > 0;
+  const still = useReducedMotion();
 
   const score = (
     <section
@@ -171,9 +201,16 @@ function Results() {
         good ? "bg-marigold" : "bg-surface",
       )}
     >
-      <h1 className="text-[30px] leading-tight font-black text-ink">
+      {/* The title lands like a stamp; a good pack gets a burst of confetti. */}
+      {good && !still ? <Confetti pieces={22} /> : null}
+      <m.h1
+        className="relative text-[30px] leading-tight font-black text-ink"
+        initial={{ scale: 1.7, rotate: -10, opacity: 0 }}
+        animate={{ scale: 1, rotate: -2, opacity: 1 }}
+        transition={spring.bouncy}
+      >
         {good ? t("results.title") : t("results.title_none")}
-      </h1>
+      </m.h1>
       <div className="flex items-stretch gap-3">
         <div className="flex min-w-[118px] flex-col items-center rounded-tile bg-surface px-4 py-2.5 pop-sm">
           <span className="text-[44px] leading-none font-black text-ink tabular-nums">
@@ -183,10 +220,24 @@ function Results() {
           <span className="text-[13px] font-extrabold text-ink-muted">{t("results.pinched")}</span>
         </div>
         <div className="flex min-w-[118px] flex-col items-center rounded-tile bg-night px-4 py-2.5 text-white pop-sm">
-          <span className="font-display text-[44px] leading-none font-extrabold text-lime tabular-nums">{shownSpots}</span>
-          <span className="text-center text-[13px] font-extrabold text-white/70">{t("results.same_spots")}</span>
+          <span className="font-display text-[44px] leading-none font-extrabold text-lime tabular-nums">
+            {shownSpots}
+          </span>
+          <span className="text-center text-[13px] font-extrabold text-white/70">
+            {t("results.same_spots")}
+          </span>
         </div>
       </div>
+      {earnedPaise > 0 ? (
+        <m.p
+          className="relative rounded-full bg-night px-4 py-1.5 font-display text-[19px] font-black text-marigold tabular-nums pop-sm"
+          initial={{ y: 12, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ ...spring.soft, delay: 0.5 }}
+        >
+          {t("results.earned", { amount: rupees(shownPaise) })}
+        </m.p>
+      ) : null}
       {done?.ledgerStatus === "pending_review" ? (
         <p className="mt-1 rounded-tile bg-surface px-3 py-2 text-[14px] font-bold text-ink-2 pop-sm">
           {t("results.held")}
@@ -205,10 +256,10 @@ function Results() {
       transition={spring.soft}
       className="flex flex-col gap-3"
     >
-      <p className="flex items-center justify-center gap-2 text-[15px] font-extrabold text-success">
-        <CheckCheck className="size-5" strokeWidth={3} aria-hidden />
+      <p className="sr-only" role="status">
         {t("results.collected_xp", { xp: done.xpGained })}
       </p>
+      <XpBar done={done} />
       <Button
         variant="play"
         size="xl"
@@ -230,7 +281,7 @@ function Results() {
     <div className="flex flex-col gap-3">
       {collect.error instanceof ApiError && collect.error.code === "PACK_INCOMPLETE" ? (
         // A round never reached the server (e.g. an offline answer was refused): resume at the missing one.
-        <div className="pop-sm flex items-center gap-3 rounded-tile bg-marigold-soft p-3">
+        <div className="flex items-center gap-3 rounded-tile bg-marigold-soft p-3 pop-sm">
           <p className="flex-1 text-[15px] font-semibold text-ink">{t("results.incomplete")}</p>
           <Button size="sm" variant="primary" asChild>
             <Link to={`/play/${packId}`}>{t("results.finish_pack")}</Link>
@@ -258,6 +309,15 @@ function Results() {
     </div>
   );
 
+  const recap = rounds.length ? (
+    <section aria-labelledby="recap" className="flex flex-col gap-3">
+      <h2 id="recap" className="px-1 text-[21px] font-black">
+        {t("results.recap")}
+      </h2>
+      <RoundRecap packId={packId} rounds={rounds} />
+    </section>
+  ) : null;
+
   const matches = pinches.length ? (
     <section aria-labelledby="matches" className="flex flex-col gap-3">
       <h2 id="matches" className="px-1 text-[21px] font-black">
@@ -270,7 +330,7 @@ function Results() {
       </ul>
     </section>
   ) : rounds.length ? (
-    <p className="pop-sm rounded-tile bg-surface p-4 text-[15px] text-ink-2">{t("results.empty")}</p>
+    <p className="rounded-tile bg-surface p-4 text-[15px] text-ink-2 pop-sm">{t("results.empty")}</p>
   ) : null;
 
   return (
@@ -278,18 +338,23 @@ function Results() {
       {family === "phone" ? (
         <div className="mx-auto flex max-w-[560px] flex-col gap-5 pb-44">
           {score}
+          {recap}
           {matches}
           <div className="fixed inset-x-0 bottom-0 z-30 border-t-[3px] border-surface bg-canvas px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] sm:px-6">
             <div className="mx-auto max-w-[560px]">{actions}</div>
           </div>
         </div>
       ) : (
-        <div className="mx-auto grid max-w-[1100px] grid-cols-[minmax(0,420px)_minmax(0,1fr)] gap-8">
+        // Desktop: the short result block sits in the middle of the screen, not stuck to the top (D55).
+        <div className="mx-auto grid min-h-[calc(100dvh-80px)] max-w-[1100px] grid-cols-[minmax(0,420px)_minmax(0,1fr)] content-center gap-8">
           <div className="sticky top-8 flex flex-col gap-5 self-start">
             {score}
             {actions}
           </div>
-          <div className="flex flex-col gap-5">{matches}</div>
+          <div className="flex flex-col gap-6">
+            {recap}
+            {matches}
+          </div>
         </div>
       )}
       <RewardQueue key={done ? "done" : "pending"} rewards={rewards} />

@@ -1,6 +1,7 @@
 // One tap → playing (docs/UI_DIRECTION.md v2 §3): every Play button calls this; no sheet in between.
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
+import { preload } from "@/app/screens";
 import { api, ApiError } from "./api";
 import { track } from "./events";
 import { haptic } from "./haptics";
@@ -22,7 +23,11 @@ async function getPackToPlay() {
 export function usePackStarter() {
   const navigate = useNavigate();
   return useMutation({
-    mutationFn: getPackToPlay,
+    // The Play chunk downloads while the pack is fetched, not after.
+    mutationFn: () => {
+      preload("/play");
+      return getPackToPlay();
+    },
     onSuccess: (pack) => {
       track("pack_start");
       queryClient.setQueryData(["pack", pack.packId], pack);

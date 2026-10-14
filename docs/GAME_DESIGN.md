@@ -52,6 +52,8 @@ Open app ─► Today ─► Play pack (10 rounds, ~2 min)
 4. **Discover** — their pinch pops in: a shared glow if it's within 170/1000 of yours (**same spot**), a dashed
    thread if not.
 5. **Connect** — their words appear in their language; matching meaning across languages is a Bhasha Pinch.
+6. **Hive mind** — after your answer is stored, a heatmap shows where everyone else pinched on this photo, with
+   "41% pinched here too" (or "Only you pinched here"). Shown once ≥ 5 others have pinched; flagged answers excluded.
 
 Same spot = **XP only** (`pinch.spotXp`), never ₹ — a tap can land on the same spot by chance. ₹ stays tied to
 words matched by meaning (the labelling work). Words are optional on photo rounds; a pinch alone is a
@@ -84,6 +86,9 @@ A round counts as **one** pinch even if 2–3 words match. Extra matches add +2 
 - Partner selection (server): same prompt, different user, not the same device fingerprint, not a flagged account, prefer answers from accounts with gold accuracy ≥ 75%, random among top 20.
 - Seed data: every prompt ships with 5 seeded partner sets so the reviewer always has partners.
 - The UI shows the partner as a real person: avatar, first name or handle, **state**. Never their exact city or anything identifying.
+- **Rematch:** 35% of the time (`partner.rematchChance`), if someone you've pinched with before is in the qualifying
+  pool, they're picked. The reveal says "Rematch · 2× before". The partner is chosen at submit time, so there is no
+  "Asha is in this pack" teaser before you answer.
 
 ## 5. Burnt Words
 
@@ -99,6 +104,8 @@ For each prompt, once a concept appears in more than **40%** of the last 50 answ
 - A pack = **5 photo rounds** (D40): 3 Pinch the Picture, 1 hidden gold photo (known answer), 1 vibe photo. Order shuffled. About a minute — short enough to want another. Question prompts live in the Daily challenge, not packs.
 - Pack is downloaded whole (prompts + compressed assets + encrypted partner answers are **not** included — partner answers stay server-side). Offline play is handled by deferring the reveal; see ARCHITECTURE.md §Offline reveal.
 - Session complete bonus: +20 XP.
+- **Hot hand:** 3 pinches in a row inside a pack → the next round runs on half the timer; answer in time for **2× XP**.
+  Continues while the run lasts. XP only — never ₹ (§0). A hot round answered too slowly scores normally.
 - Max **5 paid packs per day** (daily cap protects data quality and prevents grinding). Extra play allowed for XP only.
 
 ## 7. Earnings (₹ — demo money in the prototype)
@@ -167,7 +174,7 @@ samepinch.app
 - Shows rank, avatar, handle, level, XP. Top 3 get cosmetic crowns for the next week.
 - No ₹ prizes. Ever.
 
-## 13. Badges (MVP set of 12)
+## 13. Badges (MVP set of 13)
 
 | Badge | Condition |
 |---|---|
@@ -183,6 +190,7 @@ samepinch.app
 | Bharat Synced | All 36 regions |
 | India Brain | 5/5 on Think Like India |
 | Sharp Eye | 20 gold prompts correct in a row |
+| Brain Twin | 3 pinches with the same person within 7 days |
 
 ## 14. Stretch mechanics (spec only)
 
