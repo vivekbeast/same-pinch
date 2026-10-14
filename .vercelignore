@@ -1,0 +1,10 @@
+# Never upload local secrets or working files with a CLI deploy (Git deploys only see committed files).
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules
+**/dist
+**/dev-dist
+frontend/scripts/promo/.out
+docs/media
+.claude
