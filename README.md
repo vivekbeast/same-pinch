@@ -7,7 +7,7 @@
 | | |
 |---|---|
 | **Live app** | **[samepinch.vercel.app](https://samepinch.vercel.app)** — open it on a phone |
-| **Explainer** | ▶ [2:51 video](docs/media/same-pinch-explainer.mp4) · [written version](EXPLAINER.md) |
+| **Explainer** | ▶ [2:51 video](https://drive.google.com/file/d/16SGHrvEjWxoa3xB14-F7uDC9NKV2cfOK/view?usp=sharing) · [written version](EXPLAINER.md) |
 | **Try with history** | On the welcome screen tap **I already play** → restore code **`SAME7777`** |
 
 [![Explainer video: what I built, the choices, what I left out](docs/media/explainer-poster.jpg)](docs/media/same-pinch-explainer.mp4)
