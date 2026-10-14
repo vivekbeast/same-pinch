@@ -560,5 +560,6 @@
   "results.card.bhasha": "BHASHA!",
   "results.card.spot": "Same spot",
   "results.card.miss": "Miss",
-  "results.card.skip": "Skipped"
+  "results.card.skip": "Skipped",
+  "results.spots_only": "No word match this time, but your eyes met {n}×. Add a word next time to earn."
 }

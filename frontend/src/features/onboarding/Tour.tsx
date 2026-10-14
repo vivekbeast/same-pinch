@@ -83,12 +83,12 @@ export default function Tour() {
           <button
             type="button"
             onClick={end}
-            className="cursor-pointer font-extrabold text-white/85 underline-offset-4 hover:underline"
+            className="cursor-pointer rounded-full bg-night/85 px-4 py-2 font-extrabold text-white underline-offset-4 hover:underline"
           >
             {t("onboarding.skip")}
           </button>
           <span className="flex items-center gap-3">
-            <span className="text-[14px] font-bold text-white/70">
+            <span className="rounded-full bg-night/85 px-3 py-1 text-[14px] font-bold text-white">
               {step + 1}/{STEPS.length}
             </span>
             <Button variant="play" size="md" onClick={() => (last ? end() : setStep(step + 1))}>

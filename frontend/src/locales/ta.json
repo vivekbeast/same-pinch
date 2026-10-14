@@ -180,5 +180,6 @@
   "results.card.bhasha": "பாஷா!",
   "results.card.spot": "ஒரே இடம்",
   "results.card.miss": "தவறியது",
-  "results.card.skip": "தவிர்த்தது"
+  "results.card.skip": "தவிர்த்தது",
+  "results.spots_only": "இந்த முறை சொல் பொருந்தவில்லை, ஆனால் உங்கள் பார்வை {n}× சந்தித்தது. அடுத்த முறை ஒரு சொல் சேர்த்து சம்பாதியுங்கள்."
 }

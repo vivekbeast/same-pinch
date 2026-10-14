@@ -132,6 +132,5 @@ Settled design questions live in [`docs/DECISIONS.md`](./docs/DECISIONS.md).
 | [`docs/SECURITY.md`](./docs/SECURITY.md) · [`docs/TESTING.md`](./docs/TESTING.md) | Threat model, anti-cheat, the test strategy |
 | [`docs/TECH_STACK.md`](./docs/TECH_STACK.md) · [`docs/FREE_STACK.md`](./docs/FREE_STACK.md) · [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) | Library choices, ₹0 services, deploying |
 | [`docs/DECISIONS.md`](./docs/DECISIONS.md) | Settled conflicts between docs (wins over the others) |
-| [`docs/ROADMAP.md`](./docs/ROADMAP.md) | The 5-day build plan and submission notes |
 
 *Prompt photos are CC0; see [`content/CREDITS.md`](./content/CREDITS.md). Pay figures are demo money in this build.*

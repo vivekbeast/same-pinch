@@ -204,5 +204,6 @@
   "results.card.bhasha": "ಭಾಷಾ!",
   "results.card.spot": "ಒಂದೇ ಜಾಗ",
   "results.card.miss": "ತಪ್ಪಿತು",
-  "results.card.skip": "ಬಿಟ್ಟಿದ್ದು"
+  "results.card.skip": "ಬಿಟ್ಟಿದ್ದು",
+  "results.spots_only": "ಈ ಬಾರಿ ಪದ ಹೊಂದಲಿಲ್ಲ, ಆದರೆ ನಿಮ್ಮ ನೋಟ {n}× ಸೇರಿತು. ಮುಂದಿನ ಬಾರಿ ಒಂದು ಪದ ಸೇರಿಸಿ ಗಳಿಸಿ."
 }

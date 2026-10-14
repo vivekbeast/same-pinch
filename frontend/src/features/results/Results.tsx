@@ -330,7 +330,10 @@ function Results() {
       </ul>
     </section>
   ) : rounds.length ? (
-    <p className="rounded-tile bg-surface p-4 text-[15px] text-ink-2 pop-sm">{t("results.empty")}</p>
+    // No word matched — but if your eyes met, say that (it's why the headline says "Great pack!").
+    <p className="rounded-tile bg-surface p-4 text-[15px] text-ink-2 pop-sm">
+      {sameSpots ? t("results.spots_only", { n: sameSpots }) : t("results.empty")}
+    </p>
   ) : null;
 
   return (

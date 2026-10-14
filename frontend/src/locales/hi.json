@@ -204,5 +204,6 @@
   "results.card.bhasha": "भाषा!",
   "results.card.spot": "एक ही जगह",
   "results.card.miss": "चूक",
-  "results.card.skip": "छोड़ा"
+  "results.card.skip": "छोड़ा",
+  "results.spots_only": "इस बार कोई शब्द नहीं मिला, पर आपकी नज़रें {n}× मिलीं। अगली बार एक शब्द भी लिखें और कमाएँ।"
 }
